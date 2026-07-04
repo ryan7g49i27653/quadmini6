@@ -1,0 +1,4 @@
+.DS_Store
+System Volume Information/
+*.pyc
+__pycache__/

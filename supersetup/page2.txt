@@ -1,0 +1,133 @@
+[PAGE]
+# This Page default works as an all keyboard HID examples page
+# You can mix MIDI commands and HID commands together as you want
+page_name = [HID]
+
+# key0 Space
+# key1 Up
+# key2 Mouse click
+# key3 Left
+# key4 Down
+# key5 Right
+
+[key0]
+keytimes = [1]
+ledcolor1 = [0xff0000][0xff0000][0xff0000]
+short_dw1 = [-][HID][-][Space]
+
+[key1]
+keytimes = [1]
+ledcolor1 = [0x00ff00][0x00ff00][0x00ff00]
+short_dw1 = [-][HID][-][Up]
+
+[key2]
+keytimes = [1]
+ledcolor1 = [0x0000ff][0x0000ff][0x0000ff]
+short_dw1 = [-][HID][-][Mouse_L]
+
+[key3]
+keytimes = [1]
+ledcolor1 = [0xffff00][0xffff00][0xffff00]
+short_dw1 = [-][HID][-][Left]
+
+[key4]
+keytimes = [1]
+ledcolor1 = [0x00ffff][0x00ffff][0x00ffff]
+short_dw1 = [-][HID][-][Down]
+
+[key5]
+keytimes = [1]
+ledcolor1 = [0xff00ff][0xff00ff][0xff00ff]
+short_dw1 = [-][HID][-][Right]
+
+
+#  HID keyboard commands can be only applied to short_dwX command
+#  Key words can be put into the third position A in "[][HID][A][B]" HID command
+#  The follow 5 keywords can be only used as the A in A + B command.
+#  For example: [-][HID][Ctrl][Space], means send the Ctrl + Space keyboard command
+#  Note: Pay attention to the case sensitivity of the specified keywords
+#  If no combination key needed, just leave empty as [] or [-]
+
+#    Ctrl
+#    Shift
+#    Alt
+#    Option
+#    Windows
+#    -
+
+
+#  Key words can be put into the Fourth position B in "[][HID][A][B]" HID command
+#  The follow 66 keywords can be used as A + B Keyboard command or B Keyboard command along
+#  For example: [-][HID][Ctrl][Space], means send the Ctrl + Space keyboard command
+#  For example: [-][HID][-][Space], means send the Space keyboard command
+#  Note: Pay attention to the case sensitivity of the specified keywords
+#  If [-][HID][-][Mouse_L] is set, you can simulate a mouse left click.
+
+#    Space
+#    Esc                 
+#    Caps
+#    PageUp
+#    PageDown
+#    Up
+#    Down
+#    Left
+#    Right
+#    End
+#    Enter
+#    Table
+#    Home
+#    Ins
+#    Del
+#    PrintS
+#    Pause
+#    BackSpace                                       
+#    F1
+#    F2
+#    F3
+#    F4
+#    F5
+#    F6
+#    F7
+#    F8
+#    F9
+#    F10
+#    F11
+#    F12
+#    1
+#    2
+#    3
+#    4
+#    5
+#    6
+#    7
+#    8
+#    9
+#    0
+#    A
+#    B
+#    C
+#    D
+#    E
+#    F
+#    G
+#    H
+#    I
+#    J
+#    K
+#    L
+#    M
+#    N
+#    O
+#    P
+#    Q
+#    R
+#    S
+#    T
+#    U
+#    V
+#    W
+#    X
+#    Y
+#    Z
+#    Mouse_L
+#    Mouse_R

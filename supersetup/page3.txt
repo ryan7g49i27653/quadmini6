@@ -1,0 +1,43 @@
+[PAGE]
+page_name = [P0-5]
+
+[key0]
+keytimes = [1]
+ledmode = [select]
+ledcolor1 = [0xff0000][0xff0000][0xff0000]
+short_dw1 = [1][PC][0][-]
+
+[key1]
+keytimes = [1]
+ledmode = [select]
+ledcolor1 = [0x00ff00][0x00ff00][0x00ff00]
+short_dw1 = [1][PC][1][-]
+
+[key2]
+keytimes = [1]
+ledmode = [select]
+ledcolor1 = [0x00fff0][0x00fff0][0x00fff0]
+short_dw1 = [1][PC][2][-]
+
+
+[key3]
+keytimes = [1]
+ledmode = [select]
+ledcolor1 = [0x0000ff][0x0000ff][0x0000ff]
+short_dw1 = [1][PC][3][-]
+
+
+[key4]
+keytimes = [1]
+ledmode = [select]
+ledcolor1 = [0xfff000][0xfff000][0xfff000]
+short_dw1 = [1][PC][4][-]
+
+
+[key5]
+keytimes = [1]
+ledmode = [select]
+ledcolor1 = [0xff00f0][0xff00f0][0xff00f0]
+short_dw1 = [1][PC][5][-]
+
+

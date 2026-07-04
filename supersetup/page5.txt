@@ -1,0 +1,57 @@
+[PAGE]
+page_name = [CCTG]
+
+[key0]
+keytimes = [2]
+ledmode = [normal]
+ledcolor1 = [0xff0000][0xff0000][0xff0000]
+ledcolor2 = [0x000000][0x000000][0x000000]
+short_dw1 = [1][CC][20][127]
+short_dw2 = [1][CC][20][0]
+
+[key1]
+keytimes = [2]
+ledmode = [normal]
+ledcolor1 = [0x00ff00][0x00ff00][0x00ff00]
+ledcolor2 = [0x000000][0x000000][0x000000]
+short_dw1 = [1][CC][21][127]
+short_dw2 = [1][CC][21][0]
+
+
+[key2]
+keytimes = [2]
+ledmode = [normal]
+ledcolor1 = [0x00fff0][0x00fff0][0x00fff0]
+ledcolor2 = [0x000000][0x000000][0x000000]
+short_dw1 = [1][CC][22][127]
+short_dw2 = [1][CC][22][0]
+
+
+
+[key3]
+keytimes = [2]
+ledmode = [normal]
+ledcolor1 = [0x0000ff][0x0000ff][0x0000ff]
+ledcolor2 = [0x000000][0x000000][0x000000]
+short_dw1 = [1][CC][23][127]
+short_dw2 = [1][CC][23][0]
+
+
+
+[key4]
+keytimes = [2]
+ledmode = [normal]
+ledcolor1 = [0xfff000][0xfff000][0xfff000]
+ledcolor2 = [0x000000][0x000000][0x000000]
+short_dw1 = [1][CC][24][127]
+short_dw2 = [1][CC][24][0]
+
+
+
+[key5]
+keytimes = [2]
+ledmode = [normal]
+ledcolor1 = [0xff00f0][0xff00f0][0xff00f0]
+ledcolor2 = [0x000000][0x000000][0x000000]
+short_dw1 = [1][CC][25][127]
+short_dw2 = [1][CC][25][0]

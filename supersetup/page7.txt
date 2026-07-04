@@ -1,0 +1,65 @@
+[PAGE]
+page_name = [NTNT]
+
+[key0]
+keytimes = [1]
+ledmode = [normal]
+ledcolor1 = [0xff0000][0xff0000][0xff0000]
+# Chord Am7
+short_dw1 = [1][NT][69][80] [1][NT][72][80] [1][NT][76][80] [1][NT][79][80]
+short_up1 = [1][NT][69][0] [1][NT][72][0] [1][NT][76][0] [1][NT][79][0]
+
+[key1]
+keytimes = [1]
+ledmode = [normal]
+ledcolor1 = [0x00ff00][0x00ff00][0x00ff00]
+# Chord G7
+short_dw1 = [1][NT][67][80] [1][NT][71][80] [1][NT][74][80] [1][NT][77][80]
+short_up1 = [1][NT][67][0] [1][NT][71][0] [1][NT][74][0] [1][NT][77][0]
+
+[key2]
+keytimes = [1]
+ledmode = [normal]
+ledcolor1 = [0x00fff0][0x00fff0][0x00fff0]
+# Chord Fmaj7
+short_dw1 = [1][NT][65][80] [1][NT][69][80] [1][NT][72][80] [1][NT][76][80]
+short_up1 = [1][NT][65][0] [1][NT][69][0] [1][NT][72][0] [1][NT][76][0]
+
+[key3]
+keytimes = [1]
+ledmode = [normal]
+ledcolor1 = [0x0000ff][0x0000ff][0x0000ff]
+# Chord Cmaj7
+short_dw1 = [1][NT][60][80] [1][NT][64][80] [1][NT][67][80] [1][NT][71][80]
+short_up1 = [1][NT][60][0] [1][NT][64][0] [1][NT][67][0] [1][NT][71][0]
+
+[key4]
+# loop the chords in one switch
+keytimes = [4]
+ledmode = [normal]
+ledcolor1 = [0xff0000][0xff0000][0xff0000]
+ledcolor2 = [0x00ff00][0x00ff00][0x00ff00]
+ledcolor3 = [0x00fff0][0x00fff0][0x00fff0]
+ledcolor4 = [0x0000ff][0x0000ff][0x0000ff]
+
+short_dw1 = [1][NT][69][80] [1][NT][72][80] [1][NT][76][80] [1][NT][79][80]
+short_up1 = [1][NT][69][0] [1][NT][72][0] [1][NT][76][0] [1][NT][79][0]
+
+short_dw2 = [1][NT][67][80] [1][NT][71][80] [1][NT][74][80] [1][NT][77][80]
+short_up2 = [1][NT][67][0] [1][NT][71][0] [1][NT][74][0] [1][NT][77][0]
+
+short_dw3 = [1][NT][65][80] [1][NT][69][80] [1][NT][72][80] [1][NT][76][80]
+short_up3 = [1][NT][65][0] [1][NT][69][0] [1][NT][72][0] [1][NT][76][0]
+
+short_dw4 = [1][NT][60][80] [1][NT][64][80] [1][NT][67][80] [1][NT][71][80]
+short_up4 = [1][NT][60][0] [1][NT][64][0] [1][NT][67][0] [1][NT][71][0]
+
+[key5]
+keytimes = [1]
+ledmode = [normal]
+ledcolor1 = [0xff00f0][0xff00f0][0xff00f0]
+# config both short_upX and long_upX to make sure the note off
+short_dw1 = [1][NT][60][127]
+short_up1 = [1][NT][60][0]
+long_up1 = [1][NT][60][0]
+

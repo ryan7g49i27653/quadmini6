@@ -1,0 +1,78 @@
+[globalsetup]
+# 0-100
+ledbright = [40]
+
+# 0-100
+screenbright = [80]
+
+# on / off
+midithrough = [off]
+
+# on / off
+# Selecting black or white fonts according to the wallpaper background
+dark_fonts = [off]
+
+# 123 / abc3 / abc4 / abc5 / abc8
+# Setting 123 is to display the PC as a numerical value
+# abc3 means PC display as 1A,1B,1C,2A... abc5 means 1A,1B,1C,1D,1E,2A...
+display_number_ABC = [abc3]
+
+# 0 / 1 
+# set to 1 so that the displayed PC number starting from 1 (PC value +1)
+# set to 0 so that the displayed PC number starting from 0 (actual PC value)
+display_pc_offset = [1]
+
+# 0 / 1 
+# set to 0 so that when abcX display selected above, start from 0A,0B,0C...
+# set to 1 so that when abcX display selected above, start from 1A,1B,1C...
+display_bank_offset = [1]
+
+# wp1 / wp2 / wp3
+wallpaper = [wp6]
+
+# 1 / 1.5 / 2 / 2.5
+# long press time in second
+long_press_timing = [1]
+
+[PAGE]
+page_name = [QUAD]
+
+[key0]
+keytimes = [1]
+ledmode = [select]
+ledcolor1 = [0x00ff00][0x00ff00][0x00ff00]
+short_dw1 = [1][CC][39][127]
+
+[key1]
+keytimes = [1]
+ledmode = [select]
+ledcolor1 = [0xff0000][0xff0000][0xff0000]
+short_dw1 = [1][CC][40][127]
+
+[key2]
+keytimes = [2]
+ledmode = [normal]
+ledcolor1 = [0xffffff][0xffffff][0xffffff]
+ledcolor2 = [0x333333][0x333333][0x333333]
+short_dw1 = [1][CC][46][127]
+short_dw2 = [1][CC][46][0]
+
+[key3]
+keytimes = [1]
+ledmode = [select]
+ledcolor1 = [0xff8000][0xff8000][0xff8000]
+short_dw1 = [1][CC][41][127]
+
+[key4]
+keytimes = [1]
+ledmode = [select]
+ledcolor1 = [0xffff00][0xffff00][0xffff00]
+short_dw1 = [1][CC][42][127]
+
+[key5]
+keytimes = [2]
+ledmode = [normal]
+ledcolor1 = [0xff00ff][0xff00ff][0xff00ff]
+ledcolor2 = [0x0000ff][0x0000ff][0x0000ff]
+short_dw1 = [1][CC][47][2]
+short_dw2 = [1][CC][47][1]
