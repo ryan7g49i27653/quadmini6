@@ -34,8 +34,9 @@ at the top of `code_draft.py` and `docs/PROTOCOL.md` for details.
 - Protocol designed (see `docs/PROTOCOL.md`).
 - Draft firmware written as `code_draft.py` (kept separate from the live
   `code.py` on purpose until bench-tested — see "File inventory" below) —
-  **untested on real hardware**. Has two known unknowns flagged inline
-  (GP24/GP25 pin reservation risk, UART-vs-USB-MIDI ambiguity). See
+  **untested on real hardware**. Has three known unknowns flagged inline
+  (GP24/GP25 pin reservation risk, UART-vs-USB-MIDI ambiguity, and the
+  display driver's reset/rowstart/rotation assumptions). See
   `docs/TESTING.md` for the bench-test plan to resolve these before
   trusting it on stage.
 - Design reviewed against the live `supersetup/page0.txt` config and the
@@ -91,9 +92,10 @@ at the top of `code_draft.py` and `docs/PROTOCOL.md` for details.
 - **`/lib` contents on device:** `adafruit_bitmap_font`,
   `adafruit_display_shapes`, `adafruit_display_text`, `adafruit_hid`,
   `adafruit_imageload`, `adafruit_midi` (source, readable), `adafruit_progressbar`,
-  `adafruit_ticks.mpy`, `asyncio`, `midicaptain6s.mpy` (stock app, do not
-  import), `neopixel.mpy`, `adafruit_st7789.mpy` (display driver, unused so
-  far — no screen support in the draft code).
+  `adafruit_ticks.mpy`, `asyncio`, `midicaptain6s.mpy` (stock app — never
+  import it except via the dual-boot selector's stock branch),
+  `neopixel.mpy`, `adafruit_st7789.mpy` (display driver, used by the QC
+  branch for the static boot logo).
 - **`boot.py`** on device uses `board.GP1` as the "hold at power-on to enter
   USB mode" switch — this is switch "1", confirmed independently and
   matches the community-sourced pinout below.
@@ -107,6 +109,11 @@ at the top of `code_draft.py` and `docs/PROTOCOL.md` for details.
   stock `midicaptain6s` unmodified or runs the custom QC bidirectional
   logic. Deliberately kept as a separate file rather than overwriting
   `code.py` until validated per `docs/TESTING.md`.
+- `wallpaper/wp5.bmp` — Neural DSP logo (240x240, 4bpp indexed) shown by
+  the QC branch at boot. A runtime dependency of `code_draft.py` on the
+  device; display init is wrapped in try/except, so if it's missing or
+  the driver assumptions are wrong, the error prints to serial and the
+  firmware carries on without a screen.
 - `docs/HARDWARE.md` — GPIO pinout, NeoPixel/UART pins, known risks
 - `docs/PROTOCOL.md` — full MIDI CC scheme, both outgoing (MINI6→QC) and
   incoming (QC→MINI6 state echo)
@@ -122,8 +129,9 @@ at the top of `code_draft.py` and `docs/PROTOCOL.md` for details.
 2. Flash `code_draft.py` to the device as `code.py` (standard PaintAudio
    USB-mode process: hold switch 1 at power-on, mount drive, replace
    `code.py`) and work through the `docs/TESTING.md` checklist.
-3. Resolve the two flagged unknowns (pin reservation, UART vs USB MIDI).
-4. Iterate on debounce timing, long-press support (not yet implemented —
-   stock Super Mode's page+/page− long-press behavior on switches "3"/"C"
-   is NOT replicated in the draft code and would need to be added if
-   still wanted).
+3. Resolve the three flagged unknowns (pin reservation, UART vs USB MIDI,
+   display driver assumptions).
+4. Iterate on debounce timing as needed. (Long-press page+/page− support
+   is no longer a gap: the dual-boot design keeps stock — and its
+   hardwired long-press paging — fully available on the default boot
+   path, and the QC branch has no page concept for long-press to act on.)

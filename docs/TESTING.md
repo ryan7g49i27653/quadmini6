@@ -22,10 +22,13 @@ later steps are hard to debug if an earlier assumption was wrong.
       is the dual-boot selector's default path — if this regresses, stock
       usage for both rigs breaks, not just the new QC feature.
 - [ ] Power on **holding switch "C"**. Confirm the device does NOT run
-      stock Super Mode — this is the QC branch. Continue the rest of this
-      checklist with "C" held at every subsequent power-on.
-- [ ] Power on normally (not in USB mode) with a serial console attached
-      if possible (helps see any tracebacks).
+      stock Super Mode — this is the QC branch. Attach a serial console if
+      possible (helps see tracebacks, including non-fatal display errors,
+      which print but don't halt). Continue the rest of this checklist
+      with "C" held at every subsequent power-on.
+- [ ] Release "C" once the QC branch is up — confirm the release itself
+      does not fire a spurious CC 47 (mode change). By design, press
+      events only fire on a new press, but verify on hardware.
 - [ ] Press each of the 6 switches one at a time. Confirm no crash/hang.
 - [ ] If a switch does nothing and no error appears — check GPIO pin
       assignment for that switch first (see HARDWARE.md risk #1, GP24/GP25
@@ -77,11 +80,12 @@ later steps are hard to debug if an earlier assumption was wrong.
 
 ## 6. Known gaps not yet addressed (decide if needed before relying on this live)
 
-- [ ] Long-press page+/page− behavior on switches "3"/"C" — not
-      implemented at all in custom firmware (no "page" concept exists).
-      Decide if this matters for the QC-only use case, since custom
-      firmware presumably won't need multi-page switching the way Super
-      Mode's DRKG/QCMN two-page setup did.
+- [x] Long-press page+/page− behavior on switches "3"/"C" — resolved by
+      the dual-boot design, 2026-07-04: multi-page switching (QUAD, DRKG,
+      etc.) stays fully available by booting stock (the default path),
+      where the hardwired long-press behavior is untouched. The QC branch
+      has no page concept by design, so long-press has no job there.
+      Nothing to implement unless a new use for long-press comes up.
 - [x] No screen/display support beyond a static logo — resolved 2026-07-04
       by showing `wallpaper/wp5.bmp` once at boot in the QC branch (see
       section 8 below for the actual verification steps). Still no PC/CC
@@ -105,6 +109,10 @@ later steps are hard to debug if an earlier assumption was wrong.
 
 - [ ] With switch "C" held at power-on (QC branch), confirm the TFT shows
       the Neural DSP logo (`wp5.bmp`) instead of staying blank/garbage.
+      Display init is non-fatal by design (wrapped in try/except, error
+      printed to serial) — if the logo is missing but switches/MIDI still
+      work, check the serial console for the printed exception rather
+      than suspecting a full crash.
 - [ ] If the screen stays dark: check the `reset=None` assumption first —
       the panel may need an actual reset pulse from a GPIO we haven't
       identified yet.

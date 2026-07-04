@@ -147,24 +147,31 @@ else:
     #     has garbage bands, try `rowstart=80`.
     #   - `rotation=0` assumes the panel is mounted "as manufactured". If the
     #     logo appears upside-down or sideways, try 90/180/270.
-    displayio.release_displays()
-    _spi = busio.SPI(clock=board.GP14, MOSI=board.GP15)
-    _display_bus = displayio.FourWire(
-        _spi, command=board.GP12, chip_select=board.GP13, reset=None
-    )
-    display = adafruit_st7789.ST7789(
-        _display_bus,
-        width=DISPLAY_WIDTH,
-        height=DISPLAY_HEIGHT,
-        rowstart=0,
-        rotation=0,
-    )
-    _bitmap, _palette = adafruit_imageload.load(
-        QC_MODE_IMAGE, bitmap=displayio.Bitmap, palette=displayio.Palette
-    )
-    _splash = displayio.Group()
-    _splash.append(displayio.TileGrid(_bitmap, pixel_shader=_palette))
-    display.show(_splash)
+    try:
+        displayio.release_displays()
+        _spi = busio.SPI(clock=board.GP14, MOSI=board.GP15)
+        _display_bus = displayio.FourWire(
+            _spi, command=board.GP12, chip_select=board.GP13, reset=None
+        )
+        display = adafruit_st7789.ST7789(
+            _display_bus,
+            width=DISPLAY_WIDTH,
+            height=DISPLAY_HEIGHT,
+            rowstart=0,
+            rotation=0,
+        )
+        _bitmap, _palette = adafruit_imageload.load(
+            QC_MODE_IMAGE, bitmap=displayio.Bitmap, palette=displayio.Palette
+        )
+        _splash = displayio.Group()
+        _splash.append(displayio.TileGrid(_bitmap, pixel_shader=_palette))
+        display.show(_splash)
+    except Exception as _e:
+        # The logo is cosmetic; MIDI/LED sync is the mission. Never let a
+        # display fault (wrong reset assumption, missing wp5.bmp, etc.)
+        # take the whole firmware down on stage.
+        import sys
+        sys.print_exception(_e)
 
     switches = {}
     for _name, _pin in SWITCH_PINS.items():
