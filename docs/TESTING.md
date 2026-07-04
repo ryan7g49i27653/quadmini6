@@ -50,7 +50,7 @@ later steps are hard to debug if an earlier assumption was wrong.
       or onboard footswitch. Watch the MINI 6's switch "1" LED.
   - **If it lights up green:** UART path works, no changes needed.
   - **If nothing happens:** swap in the commented-out `usb_midi` block in
-    `code.py` in place of the `busio.UART` setup, reflash, retest.
+    `code_draft.py` in place of the `busio.UART` setup, reflash, retest.
 - [ ] Repeat for B2/C2/D2 (switches "2"/"A"/"B" respectively).
 - [ ] Press A1/B1/C1/D1 on the QC. Confirm all four Gig View LEDs on the
       MINI 6 go dark.
@@ -65,8 +65,8 @@ later steps are hard to debug if an earlier assumption was wrong.
 
 - [ ] Rapid double-taps on each switch — confirm no double-fires, no
       missed presses. Current debounce window is 30ms
-      (`DEBOUNCE_S = 0.03` in `code.py`) — adjust if too twitchy or too
-      sluggish underfoot.
+      (`DEBOUNCE_S = 0.03` in `code_draft.py`) — adjust if too twitchy or
+      too sluggish underfoot.
 
 ## 6. Known gaps not yet addressed (decide if needed before relying on this live)
 
