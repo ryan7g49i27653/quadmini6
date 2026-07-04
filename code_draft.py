@@ -51,7 +51,11 @@ Gig View footswitch identities, Channel 1):
   CC 100 value 2 = B1 pressed   CC 100 value 6 = B2 pressed -> light "2"
   CC 100 value 3 = C1 pressed   CC 100 value 7 = C2 pressed -> light "A"
   CC 100 value 4 = D1 pressed   CC 100 value 8 = D2 pressed -> light "B"
-  (values 1-4 => all four Gig View LEDs off, since none of A2-D2 is active)
+  CC 100 value 0 = explicit clear ("zero out"), sent by each live-used
+                   preset's On Preset Load config so LEDs don't go stale
+                   across preset switches; reserved for any future
+                   clear-LED-state need
+  (values 0-4 => all four Gig View LEDs off, since none of A2-D2 is active)
 """
 
 import board
@@ -279,7 +283,11 @@ else:
     def handle_incoming_cc(cc_num, value):
         if cc_num != 100:
             return
-        if value in (1, 2, 3, 4):
+        # 0 = explicit "zero out" (sent by each preset's On Preset Load
+        # config, reserved generally for clearing LED state); 1-4 = a Page I
+        # scene is active. Same LED outcome either way: nothing on Page II
+        # is active, so all four Gig View LEDs go dark.
+        if value in (0, 1, 2, 3, 4):
             clear_gigview_leds()
             pixels.show()
         elif value in GIGVIEW_ECHO_MAP:

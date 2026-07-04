@@ -86,6 +86,7 @@ of the Page II patches are:
 
 | Incoming CC 100 value | LED result |
 |---|---|
+| 0 (explicit "zero out" — preset load, or any future clear-state need) | All four Gig View LEDs off |
 | 1, 2, 3, or 4 (any Page I patch) | All four Gig View LEDs off |
 | 5 (A2) | Switch "1" lit (green), others off |
 | 6 (B2) | Switch "2" lit (red), others off |
@@ -109,16 +110,21 @@ MIDI messages (Preset MIDI Out → ON PRESET LOAD MESSAGES, QC manual
 p. 90), sent every time that preset loads.
 
 **Decided approach: every preset used live gets one On Preset Load
-message — CC 100, value 1, channel 1** — which the MINI 6 already handles
-(value 1 = "a Page I scene is active" = clear all four Gig View LEDs). No
-firmware change needed. The user mostly runs one preset all night, so
-this only matters at song-boundary preset switches.
+message — CC 100, value 0, channel 1.** Value 0 is a dedicated "zero out"
+semantic (decided 2026-07-04): it clears all four Gig View LEDs, same
+outcome as values 1-4, but is reserved exclusively for explicit
+clear-LED-state events rather than footswitch echoes. That keeps MIDI
+monitor logs unambiguous (a value 0 can only mean a preset loaded, never
+"someone pressed A1") and gives future iterations a clean hook for any
+other "reset the LEDs" need. The firmware handles 0 alongside 1-4 in
+`handle_incoming_cc`. The user mostly runs one preset all night, so this
+only matters at song-boundary preset switches.
 
 Optional refinement, deliberately NOT the default: since the message is
 configured per preset, a preset saved with a Page II scene active could
 instead send the matching value 5-8 to light the correct LED on load.
 This works, but it's a static value — if the preset is ever re-saved on a
-different scene, the message silently goes stale and lies. Value 1
+different scene, the message silently goes stale and lies. Value 0
 (clear) is maintenance-free and errs dark rather than wrong; use the
 refinement only for presets that firmly live on a Page II scene.
 
