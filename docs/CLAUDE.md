@@ -19,10 +19,32 @@ we've confirmed it can do via its "Preset MIDI Out" per-footswitch config.
 
 - Hardware pinout confirmed (see `docs/HARDWARE.md`).
 - Protocol designed (see `docs/PROTOCOL.md`).
-- Draft `code.py` written (see `code.py` in this directory) — **untested on
-  real hardware**. Has two known unknowns flagged inline (GP24/GP25 pin
-  reservation risk, UART-vs-USB-MIDI ambiguity). See `docs/TESTING.md` for
-  the bench-test plan to resolve these before trusting it on stage.
+- Draft firmware written as `code_draft.py` (kept separate from the live
+  `code.py` on purpose until bench-tested — see "File inventory" below) —
+  **untested on real hardware**. Has two known unknowns flagged inline
+  (GP24/GP25 pin reservation risk, UART-vs-USB-MIDI ambiguity). See
+  `docs/TESTING.md` for the bench-test plan to resolve these before
+  trusting it on stage.
+- Design reviewed against the live `supersetup/page0.txt` config and the
+  Quad Cortex mini manual (`docs/Quad Cortex Mini User Manual 4.0.0.pdf`,
+  gitignored, kept locally for reference):
+  - Forward direction (MINI 6 → QC) confirmed to replicate `page0.txt`'s
+    CC mapping exactly, switch by switch.
+  - Backward direction (QC → MINI 6) confirmed to match the intended
+    behavior: any Page I scene selected on the QC (from any source) clears
+    all four Gig View LEDs on the MINI 6; any Page II scene lights the
+    matching LED. See `docs/PROTOCOL.md` for the full mapping.
+  - Confirmed via the manual that the QC has **no MIDI feedback for
+    current Mode (Stomp/Scene/Preset) or Gig View open/closed state** —
+    Preset MIDI Out only echoes the 8 Gig View scene footswitches. Switch
+    "3" (Gig View) and switch "C" (Mode) remain locally-tracked/optimistic,
+    same limitation stock Super Mode always had (not a regression).
+  - Boot-state defaults decided: switch "3" LED defaults to closed, which
+    matches the QC's actual boot behavior (Gig View is always closed on
+    power-up). Switch "C" LED defaults to Scene, since the QC remembers
+    its last-used mode across power cycles and is in Scene mode the vast
+    majority of the time in practice; wrong in the rare case, self-corrects
+    within 1-2 presses of "C". See `docs/PROTOCOL.md` for details.
 - User has NOT yet updated PaintAudio firmware and does not plan to for
   this project — device is running whatever shipped with a MIDI Captain
   MINI 6 purchased before mid-2026 (Super Mode era, `key0`-`key5` config
@@ -49,19 +71,26 @@ we've confirmed it can do via its "Preset MIDI Out" per-footswitch config.
 
 ## File inventory
 
-- `code.py` — draft replacement firmware (untested)
+- `code.py` — stock firmware, still live on the device (`import
+  midicaptain6s`). Left untouched until the draft is bench-tested.
+- `code_draft.py` — draft replacement firmware (untested on hardware).
+  Deliberately kept as a separate file rather than overwriting `code.py`
+  until validated per `docs/TESTING.md`.
 - `docs/HARDWARE.md` — GPIO pinout, NeoPixel/UART pins, known risks
 - `docs/PROTOCOL.md` — full MIDI CC scheme, both outgoing (MINI6→QC) and
   incoming (QC→MINI6 state echo)
 - `docs/TESTING.md` — bench-test checklist to run before/during development
+- `docs/*.pdf` — reference manuals (PaintAudio MINI 6, Neural DSP Quad
+  Cortex mini, Super Mode) kept locally for lookup, gitignored (not
+  committed — size and copyright)
 
 ## Immediate next steps
 
-1. Flash `code.py` to device (back up existing `supersetup` config folder
-   first — it has a working, validated Super Mode config for both this QC
-   setup and a separate laptop-effects rig, in case this project needs to
-   be abandoned or paused).
-2. Work through `docs/TESTING.md` checklist.
+1. `supersetup` config folder is already backed up (confirmed by user,
+   2026-07-04) — the known-working Super Mode fallback is safe.
+2. Flash `code_draft.py` to the device as `code.py` (standard PaintAudio
+   USB-mode process: hold switch 1 at power-on, mount drive, replace
+   `code.py`) and work through the `docs/TESTING.md` checklist.
 3. Resolve the two flagged unknowns (pin reservation, UART vs USB MIDI).
 4. Iterate on debounce timing, long-press support (not yet implemented —
    stock Super Mode's page+/page− long-press behavior on switches "3"/"C"

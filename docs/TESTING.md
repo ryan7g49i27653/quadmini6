@@ -6,17 +6,17 @@ later steps are hard to debug if an earlier assumption was wrong.
 
 ## 0. Before touching anything
 
-- [ ] Back up the entire `supersetup` folder from the MINI 6's USB drive to
+- [x] Back up the entire `supersetup` folder from the MINI 6's USB drive to
       a local folder. This is the known-working Super Mode config (both
       the QC page and a separate laptop-effects-rig page) — the fallback
       if this project stalls or the device needs to go back to normal
-      before a gig.
+      before a gig. **Done — confirmed by user, 2026-07-04.**
 
 ## 1. Flash and basic switch response
 
-- [ ] Copy `code.py` to the device root (per the standard PaintAudio
-      USB-mode process: hold switch 1 at power-on, mount drive, replace
-      `code.py`).
+- [ ] Copy `code_draft.py` to the device root as `code.py` (per the
+      standard PaintAudio USB-mode process: hold switch 1 at power-on,
+      mount drive, replace `code.py`).
 - [ ] Power on normally (not in USB mode) with a serial console attached
       if possible (helps see any tracebacks).
 - [ ] Press each of the 6 switches one at a time. Confirm no crash/hang.
@@ -76,6 +76,19 @@ later steps are hard to debug if an earlier assumption was wrong.
       firmware presumably won't need multi-page switching the way Super
       Mode's DRKG/QCMN two-page setup did.
 - [ ] No screen/display support — the ST7789 TFT will just show whatever
-      was last on it (likely blank or garbage) since `code.py` never
+      was last on it (likely blank or garbage) since `code_draft.py` never
       touches it. Cosmetic only, but confirm this is acceptable before a
       performance.
+
+## 7. Known gaps already decided (verify behavior matches the decision)
+
+- [x] Switch "3" (Gig View) LED defaults to closed at boot — matches the
+      QC's actual boot state, so this needs no correction logic. Confirm
+      during testing that it's actually correct on first power-up.
+- [x] Switch "C" (Mode) LED defaults to Scene at boot — a best-guess, not
+      ground truth, since the QC has no MIDI feedback for current Mode and
+      remembers its last-used mode across power cycles. Decided acceptable
+      since the QC is in Scene mode the vast majority of the time; wrong
+      guesses self-correct within 1-2 presses of "C" (see `PROTOCOL.md`).
+      Confirm during testing that a wrong guess still reaches the intended
+      mode within 2 presses, not more.

@@ -83,6 +83,36 @@ given the user watches the QC's own screen live and doesn't need
 sub-100ms LED feedback on the MINI 6 itself. No "light immediately on
 press, correct later" logic needed.
 
+### No feedback available for switch "3" (Gig View) or "C" (Mode)
+
+Confirmed via the Quad Cortex mini manual (`docs/Quad Cortex Mini User
+Manual 4.0.0.pdf`, pp. 88-94): Preset MIDI Out only sends a message when
+one of the 8 Gig View scene footswitches is pressed. There is no outgoing
+MIDI message for Gig View open/closed state or for the currently active
+Mode (Preset/Scene/Stomp) — those are only settable via incoming CC (CC 46
+and CC 47 respectively), never echoed back out. So switches "3" and "C"
+cannot be ground-truth synced the way 1/2/A/B are; they stay
+locally-tracked/optimistic in `code_draft.py`, same limitation stock Super
+Mode's `ledmode = [select]` always had. Not a regression, just a ceiling
+on what the QC exposes over MIDI.
+
+Two boot-state defaults follow from this, decided 2026-07-04:
+
+- **Switch "3" (Gig View) defaults to closed/off at boot.** This isn't a
+  guess — the QC always boots with Gig View closed (confirmed: it always
+  requires a swipe-up or switch press to open), so the default is exactly
+  correct, not just a best-effort assumption.
+- **Switch "C" (Mode) defaults to Scene at boot.** Unlike Gig View, Mode
+  is *not* fixed at boot — the QC remembers whatever mode was active when
+  it was last powered off, and there's no way to query it. In practice the
+  QC spends nearly all its time in Scene mode (Stomp is used occasionally
+  but the user returns to Scene afterward), so Scene is the better default
+  guess. When the guess is wrong, pressing "C" sends an absolute
+  set-mode command (not a relative toggle), so the QC always ends up in
+  the intended mode — it just may take an extra press to get there, and
+  the LED can show a stale color until then. Confirmed acceptable by the
+  user as a rare, livable edge case.
+
 ## Colors reference (for consistency if extending)
 
 | Element | Color | Hex |
