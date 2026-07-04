@@ -2,3 +2,6 @@
 System Volume Information/
 *.pyc
 __pycache__/
+
+# Third-party manuals kept locally for reference only (copyright, repo bloat)
+docs/*.pdf

@@ -154,7 +154,10 @@ def light_gigview_led(name, color):
 # Initial LED state on boot
 clear_gigview_leds()
 set_pixel_group("3", COLOR_GIGVIEW_OFF)
-set_pixel_group("C", COLOR_STOMP)  # first press will send Stomp; show it as current
+set_pixel_group("C", COLOR_SCENE)  # QC has no MIDI feedback for current Mode; Scene
+                                    # is the assumed default since that's where the QC
+                                    # spends nearly all its time. Wrong the rare times it
+                                    # isn't, but self-corrects within 1-2 presses of "C".
 pixels.show()
 
 # ---------------------------------------------------------------------------
