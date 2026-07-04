@@ -97,6 +97,31 @@ given the user watches the QC's own screen live and doesn't need
 sub-100ms LED feedback on the MINI 6 itself. No "light immediately on
 press, correct later" logic needed.
 
+### Preset changes: On Preset Load messages (QC-side config, decided 2026-07-04)
+
+The CC 100 echo above only fires on *footswitch identity* presses. Loading
+a different **preset** on the QC fires nothing — the new preset comes up
+on whatever scene it was saved with, and the MINI 6's LEDs keep showing
+the last scene of the *previous* preset (stale).
+
+The QC's fix is per-preset: each preset supports up to 12 "On Preset Load"
+MIDI messages (Preset MIDI Out → ON PRESET LOAD MESSAGES, QC manual
+p. 90), sent every time that preset loads.
+
+**Decided approach: every preset used live gets one On Preset Load
+message — CC 100, value 1, channel 1** — which the MINI 6 already handles
+(value 1 = "a Page I scene is active" = clear all four Gig View LEDs). No
+firmware change needed. The user mostly runs one preset all night, so
+this only matters at song-boundary preset switches.
+
+Optional refinement, deliberately NOT the default: since the message is
+configured per preset, a preset saved with a Page II scene active could
+instead send the matching value 5-8 to light the correct LED on load.
+This works, but it's a static value — if the preset is ever re-saved on a
+different scene, the message silently goes stale and lies. Value 1
+(clear) is maintenance-free and errs dark rather than wrong; use the
+refinement only for presets that firmly live on a Page II scene.
+
 ### No feedback available for switch "3" (Gig View) or "C" (Mode)
 
 Confirmed via the Quad Cortex mini manual (`docs/Quad Cortex Mini User

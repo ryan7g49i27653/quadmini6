@@ -70,6 +70,10 @@ later steps are hard to debug if an earlier assumption was wrong.
       any local/optimistic logic (there isn't any in this design, so this
       just confirms the echo path works symmetrically regardless of which
       side initiated the change).
+- [ ] Preset-load clear: on each preset used live, add an On Preset Load
+      message (CC 100, value 1, channel 1 — see `PROTOCOL.md`). With a
+      Page II scene LED lit on the MINI 6, load a different preset on the
+      QC and confirm all four Gig View LEDs clear.
 
 ## 5. Debounce / reliability
 

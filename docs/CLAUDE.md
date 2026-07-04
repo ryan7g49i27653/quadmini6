@@ -59,6 +59,12 @@ at the top of `code_draft.py` and `docs/PROTOCOL.md` for details.
     its last-used mode across power cycles and is in Scene mode the vast
     majority of the time in practice; wrong in the rare case, self-corrects
     within 1-2 presses of "C". See `docs/PROTOCOL.md` for details.
+- Preset-load LED staleness addressed, decided 2026-07-04: loading a
+  different preset on the QC fires no CC 100 echo, so the MINI 6's LEDs
+  would go stale at song-boundary preset switches. Fix is QC-side config,
+  not firmware: each live-used preset gets an On Preset Load message
+  (CC 100, value 1) that clears the Gig View LEDs. See `docs/PROTOCOL.md`
+  for the rationale and an optional per-preset refinement.
 - Static display added, decided 2026-07-04: QC branch now shows
   `wallpaper/wp5.bmp` (Neural DSP logo, 240x240) once at boot via
   `adafruit_st7789`/`adafruit_imageload`, purely so the screen doesn't look
