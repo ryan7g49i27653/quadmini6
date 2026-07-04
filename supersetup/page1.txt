@@ -1,5 +1,5 @@
 [PAGE]
-# Change the "NAME" below in uppercase letters <= 4 characters
+# Darkglass Ultimate
 page_name = [DRKG]
 
 # Distortion
