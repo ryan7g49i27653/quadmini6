@@ -49,9 +49,13 @@ then — only within the QC branch — reused for its normal runtime function
 
 MIDI UART baud rate: 31250 (MIDI standard).
 
-Display driver in `/lib`: `adafruit_st7789.mpy`. Not used in the current
-draft firmware — no screen support implemented yet. Adding it later is
-possible but out of scope for the initial bidirectional-LED goal.
+Display driver in `/lib`: `adafruit_st7789.mpy`. Used minimally in
+`code_draft.py`'s QC branch as of 2026-07-04 — shows `wallpaper/wp5.bmp`
+(Neural DSP logo, confirmed 240x240, 4bpp indexed) once at boot as a
+static "you're in QC mode" indicator, no live updates, no PC/CC values, no
+battery status. Untested on hardware; see known unknown #3 in
+`code_draft.py`'s docstring for the reset/rowstart/rotation assumptions
+that need verifying on first flash.
 
 ## Known risks / unknowns to verify
 
@@ -98,11 +102,12 @@ silent on first test.
 - `neopixel.mpy` — standard Adafruit NeoPixel driver, compiled but
   publicly documented (not proprietary).
 - `adafruit_st7789.mpy` — TFT display driver, compiled, publicly
-  documented. Unused in current draft.
+  documented. Used for the static QC-mode logo (see above).
+- `adafruit_imageload` — used to load `wp5.bmp` for the same purpose.
 - `adafruit_hid` — keyboard/mouse HID emulation, unused for this project.
 - `adafruit_bitmap_font`, `adafruit_display_shapes`, `adafruit_display_text`,
-  `adafruit_imageload`, `adafruit_progressbar` — display/UI helpers, unused
-  unless screen support is added later.
+  `adafruit_progressbar` — display/UI helpers, still unused (no PC/CC/text
+  rendering planned — the QC branch only ever shows the static logo).
 - `asyncio` — available if an async event loop structure is preferred over
   the draft's simple polling `while True` loop.
 - `midicaptain6s.mpy` — **stock application, do not import.** This is what

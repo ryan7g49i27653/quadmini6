@@ -82,10 +82,11 @@ later steps are hard to debug if an earlier assumption was wrong.
       Decide if this matters for the QC-only use case, since custom
       firmware presumably won't need multi-page switching the way Super
       Mode's DRKG/QCMN two-page setup did.
-- [ ] No screen/display support — the ST7789 TFT will just show whatever
-      was last on it (likely blank or garbage) since `code_draft.py` never
-      touches it. Cosmetic only, but confirm this is acceptable before a
-      performance.
+- [x] No screen/display support beyond a static logo — resolved 2026-07-04
+      by showing `wallpaper/wp5.bmp` once at boot in the QC branch (see
+      section 8 below for the actual verification steps). Still no PC/CC
+      values, battery status, or any other stock display info — confirmed
+      not needed for this mode.
 
 ## 7. Known gaps already decided (verify behavior matches the decision)
 
@@ -99,3 +100,22 @@ later steps are hard to debug if an earlier assumption was wrong.
       guesses self-correct within 1-2 presses of "C" (see `PROTOCOL.md`).
       Confirm during testing that a wrong guess still reaches the intended
       mode within 2 presses, not more.
+
+## 8. Display (new, untested — known unknown #3 in `code_draft.py`)
+
+- [ ] With switch "C" held at power-on (QC branch), confirm the TFT shows
+      the Neural DSP logo (`wp5.bmp`) instead of staying blank/garbage.
+- [ ] If the screen stays dark: check the `reset=None` assumption first —
+      the panel may need an actual reset pulse from a GPIO we haven't
+      identified yet.
+- [ ] If the image is shifted, cut off, or has a garbage band along one
+      edge: try `rowstart=80` (common offset for 240x240 panels on a
+      taller controller).
+- [ ] If the image is upside-down or sideways: try `rotation=90/180/270`.
+- [ ] Confirm the logo stays static and doesn't interfere with switch
+      responsiveness or MIDI timing (it's drawn once at boot, not in the
+      main loop, so it shouldn't — but confirm).
+- [ ] Power on **without** holding "C" (stock branch) and confirm the
+      screen behaves exactly as it always has — this code path never
+      touches the display, so stock's own screen usage should be
+      completely unaffected.

@@ -58,6 +58,14 @@ at the top of `code_draft.py` and `docs/PROTOCOL.md` for details.
     its last-used mode across power cycles and is in Scene mode the vast
     majority of the time in practice; wrong in the rare case, self-corrects
     within 1-2 presses of "C". See `docs/PROTOCOL.md` for details.
+- Static display added, decided 2026-07-04: QC branch now shows
+  `wallpaper/wp5.bmp` (Neural DSP logo, 240x240) once at boot via
+  `adafruit_st7789`/`adafruit_imageload`, purely so the screen doesn't look
+  frozen/broken next to stock's live display when switching between modes.
+  No PC/CC values, battery status, or other stock display info — user
+  confirmed those aren't needed in QC mode. Untested on hardware; three
+  display-driver assumptions (reset pin, row offset, rotation) are flagged
+  as known unknown #3 in `code_draft.py` and need bench verification.
 - Dual-boot selector added, decided 2026-07-04: hold switch "C" (GP11) at
   power-on to load the custom QC firmware; otherwise (default, nothing
   held) stock `midicaptain6s` loads as normal, unmodified, with full

@@ -4,8 +4,8 @@ custom QC bidirectional Gig View LED tracker, chosen by a switch held at
 power-on. This replaces `code.py` entirely (both the selector logic and the
 custom firmware below live in this one file).
 
-DRAFT v0.1 -- not yet bench-tested. Two known unknowns flagged inline below;
-resolve those first before trusting this on stage.
+DRAFT v0.1 -- not yet bench-tested. Three known unknowns flagged inline
+below; resolve those first before trusting this on stage.
 
 SELECTOR: hold switch "C" (GP11) during power-on to load the custom QC
 firmware. If nothing is held, stock `midicaptain6s` loads as normal --
@@ -39,6 +39,10 @@ KNOWN UNKNOWNS -- VERIFY ON FIRST FLASH:
      If nothing arrives via the UART midi.receive() loop below, the
      device may need usb_midi.ports[0] instead -- see commented-out
      alternative near the MIDI setup.
+  3. The ST7789 TFT driver is untouched in stock's own usage so far, so its
+     `reset`/`rowstart`/`rotation` values below are unverified guesses, not
+     confirmed facts like the rest of this pinout. See inline notes at the
+     display setup for what to try if the logo doesn't show correctly.
 
 Incoming protocol expected from the QC (set up in the QC's own "Preset MIDI
 Out" -> per-footswitch panel, one CC/value pair assigned to each of the 8
@@ -71,7 +75,10 @@ if not _load_qc_firmware:
 else:
     import busio
     import neopixel
+    import displayio
 
+    import adafruit_st7789
+    import adafruit_imageload
     import adafruit_midi
     from adafruit_midi.control_change import ControlChange
 
@@ -114,6 +121,10 @@ else:
 
     DEBOUNCE_S = 0.03
 
+    DISPLAY_WIDTH = 240
+    DISPLAY_HEIGHT = 240
+    QC_MODE_IMAGE = "/wallpaper/wp5.bmp"  # Neural DSP logo -- static, shown once
+
     # -----------------------------------------------------------------------
     # Hardware setup
     # -----------------------------------------------------------------------
@@ -121,6 +132,39 @@ else:
     pixels = neopixel.NeoPixel(
         board.GP7, NUM_PIXELS, brightness=BRIGHTNESS, auto_write=False
     )
+
+    # Static display: just enough to make QC mode visually unmistakable from
+    # stock/DRKG mode. No PC/CC values, no battery status, no live updates --
+    # none of that is needed or implemented, just the logo, once, on boot.
+    #
+    # UNVERIFIED (this driver is untouched in stock's own usage so far):
+    #   - `reset=None` assumes the panel's reset line isn't microcontroller-
+    #     controlled. If the screen never lights up, this is the first thing
+    #     to check.
+    #   - `rowstart`/`colstart` default to 0. Many 240x240 ST7789 panels use
+    #     a controller with more physical rows than the visible panel and
+    #     need an offset (commonly 80) -- if the image appears shifted or
+    #     has garbage bands, try `rowstart=80`.
+    #   - `rotation=0` assumes the panel is mounted "as manufactured". If the
+    #     logo appears upside-down or sideways, try 90/180/270.
+    displayio.release_displays()
+    _spi = busio.SPI(clock=board.GP14, MOSI=board.GP15)
+    _display_bus = displayio.FourWire(
+        _spi, command=board.GP12, chip_select=board.GP13, reset=None
+    )
+    display = adafruit_st7789.ST7789(
+        _display_bus,
+        width=DISPLAY_WIDTH,
+        height=DISPLAY_HEIGHT,
+        rowstart=0,
+        rotation=0,
+    )
+    _bitmap, _palette = adafruit_imageload.load(
+        QC_MODE_IMAGE, bitmap=displayio.Bitmap, palette=displayio.Palette
+    )
+    _splash = displayio.Group()
+    _splash.append(displayio.TileGrid(_bitmap, pixel_shader=_palette))
+    display.show(_splash)
 
     switches = {}
     for _name, _pin in SWITCH_PINS.items():
