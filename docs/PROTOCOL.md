@@ -1,5 +1,19 @@
 # MIDI Protocol Reference
 
+## Firmware selector (not MIDI, but affects everything below)
+
+`code_draft.py` is a dual-boot script, not just the QC logic. At startup it
+reads switch "C" (GP11) once: if held, it runs the QC bidirectional logic
+described in this document; otherwise it hands off to stock
+`midicaptain6s` unmodified. This lets the same device serve both the QC
+rig and the unrelated `DRKG` laptop-effects rig without re-flashing —
+power-cycle and hold "C" for QC, or don't for stock. Switch "1" was ruled
+out for this choice since `boot.py` already claims it for USB drive mode
+(holding it never reaches `code.py` at all). See the module docstring in
+`code_draft.py` for the exact implementation.
+
+Everything below only applies when the QC branch is active.
+
 MIDI channel throughout: **1** (adafruit_midi represents this as `0` — its
 channel numbering is 0-indexed while the QC's UI and our config both use
 1-indexed; the draft code handles this conversion, but it's worth
@@ -129,10 +143,18 @@ Two boot-state defaults follow from this, decided 2026-07-04:
 ## Prior working config (reference / fallback)
 
 Before this bidirectional project, the MINI 6 ran stock Super Mode with a
-config file (`page1.txt`, page name `QCMN`) implementing the exact same
-six-switch outgoing logic above, using `ledmode = [select]` (local-only,
-last-pressed-wins) for LED state on switches 1/2/A/B instead of true QC
-state sync. That config is a known-working fallback if this custom
-firmware project is paused or abandoned — restore from backup and the
-pedal returns to full (locally-tracked, non-bidirectional) functionality
-immediately.
+config file (`supersetup/page0.txt`, page name `QUAD`) implementing the
+exact same six-switch outgoing logic above, using `ledmode = [select]`
+(local-only, last-pressed-wins) for LED state on switches 1/2/A/B instead
+of true QC state sync.
+
+The MINI 6 also has a second real page, `supersetup/page1.txt` (page name
+`DRKG`), for an unrelated laptop-based multi-effects rig — six momentary
+CC toggles (Distortion/Octaver/Delay/Tap Tempo/Bypass plus one unlabeled,
+CC 80-85), used at different times than the QC, never simultaneously.
+
+Both are known-working stock config, and both stay fully available as a
+fallback via the dual-boot selector in `code_draft.py`: power on without
+holding switch "C" and stock `midicaptain6s` loads unmodified, giving
+access to `QUAD`, `DRKG`, and any other supersetup page exactly as they
+work today — no restore-from-backup or re-flash needed to fall back.

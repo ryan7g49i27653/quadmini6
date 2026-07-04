@@ -1,44 +1,62 @@
 [PAGE]
-# Change the below in uppercase letters <= 4 characters
-page_name = [TEST]
+# Change the "NAME" below in uppercase letters <= 4 characters
+page_name = [DRKG]
+
+# Distortion
 
 [key0]
-keytimes = [1]
+keytimes = [2]
 ledmode = [normal]
-ledcolor1 = [0xffff00][0xffff00][0xffff00]
-# PC value -1 for each pressing
-short_dw1 = [1][PC][dec1][-]
+ledcolor1 = [0xff0000][0xff0000][0xff0000]
+ledcolor2 = [0xcc0033][0xcc0033][0xcc0033]
+short_dw1 = [1][CC][80][127]
+short_dw2 = [1][CC][80][0]
+
+# Octaver
 
 [key1]
-keytimes = [1]
+keytimes = [2]
 ledmode = [normal]
-ledcolor1 = [0x00ffff][0x00ffff][0x00ffff]
-# PC value +1 for each pressing
-short_dw1 = [1][PC][inc1][-]
+ledcolor1 = [0xff9900][0xff9900][0xff9900]
+ledcolor2 = [0xff9966][0xff9966][0xff9966]
+short_dw1 = [1][CC][85][127]
+short_dw2 = [1][CC][85][0]
+
+# Delay
 
 [key2]
-keytimes = [1]
-ledmode = [tap]
-ledcolor1 = [0x00ff00][0x000000][0x000000]
-short_dw1 = [1][CC][15][127]
+keytimes = [2]
+ledmode = [normal]
+ledcolor1 = [0x8800ff][0x8800ff][0x8800ff]
+ledcolor2 = [0x0d001a][0x0d001a][0x0d001a]
+short_dw1 = [1][CC][83][127]
+short_dw2 = [1][CC][83][0]
+
+# Tap Tempo
 
 [key3]
 keytimes = [1]
-ledmode = [select]
-ledcolor1 = [0xff0000][0xff0000][0xff0000]
-# For a CC scenes control
-short_dw1 = [1][CC][34][0]
+ledmode = [tap]
+ledcolor1 = [0x0066ff][0x0066ff][0x0066ff]
+short_dw1 = [1][CC][84][127]
+
+# Unsure
 
 [key4]
-keytimes = [1]
-ledmode = [select]
-ledcolor1 = [0xffff00][0xffff00][0xffff00]
-# For a CC scenes control
-short_dw1 = [1][CC][34][1]
+keytimes = [2]
+ledmode = [normal]
+ledcolor1 = [0x00ffff][0x00ffff][0x00ffff]
+ledcolor2 = [0x001a1a][0x001a1a][0x001a1a]
+short_dw1 = [1][CC][81][127]
+short_dw2 = [1][CC][81][0]
+
+# Bypass
 
 [key5]
-keytimes = [1]
-ledmode = [select]
-ledcolor1 = [0xffffff][0xffffff][0xffffff]
-# For a CC scenes control
-short_dw1 = [1][CC][34][2]
+keytimes = [2]
+ledmode = [normal]
+ledcolor1 = [0xffff00][0xffff00][0xffff00]
+ledcolor2 = [0xffffcc][0xffffcc][0xffffcc]
+short_dw1 = [1][CC][82][127]
+short_dw2 = [1][CC][82][0]
+

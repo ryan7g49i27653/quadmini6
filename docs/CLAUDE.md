@@ -15,6 +15,19 @@ changed from the QC's own touchscreen or onboard footswitches, not just
 from the MINI 6. This requires the QC to echo state back over MIDI, which
 we've confirmed it can do via its "Preset MIDI Out" per-footswitch config.
 
+The MINI 6 is also used for a second, unrelated rig (a laptop-based
+multi-effects setup — see `supersetup/page1.txt`, page name `DRKG`) at
+different times, never simultaneously with the QC. Since a custom
+firmware has to fully replace stock `code.py` (see "Environment facts"
+below), we can't keep both stock's multi-page support and the new QC
+bidirectional behavior running side by side in the same firmware without
+reimplementing every stock page in Python. Instead, `code_draft.py` is
+designed as a **dual-boot selector**: it checks one switch at power-on and
+either hands off to unmodified stock `midicaptain6s` (all pages, DRKG
+included, exactly as they work today) or runs the new QC-only logic — no
+re-flashing required to switch between the two rigs. See "SELECTOR" note
+at the top of `code_draft.py` and `docs/PROTOCOL.md` for details.
+
 ## Current status
 
 - Hardware pinout confirmed (see `docs/HARDWARE.md`).
@@ -45,6 +58,14 @@ we've confirmed it can do via its "Preset MIDI Out" per-footswitch config.
     its last-used mode across power cycles and is in Scene mode the vast
     majority of the time in practice; wrong in the rare case, self-corrects
     within 1-2 presses of "C". See `docs/PROTOCOL.md` for details.
+- Dual-boot selector added, decided 2026-07-04: hold switch "C" (GP11) at
+  power-on to load the custom QC firmware; otherwise (default, nothing
+  held) stock `midicaptain6s` loads as normal, unmodified, with full
+  access to every existing supersetup page including DRKG. Switch "1" was
+  ruled out for this since `boot.py` already claims it for USB drive mode.
+  This makes switch "C" dual-purpose: read once at power-on for firmware
+  selection, then (only in the QC branch) reused for its normal Stomp/Scene
+  toggle function during runtime.
 - User has NOT yet updated PaintAudio firmware and does not plan to for
   this project — device is running whatever shipped with a MIDI Captain
   MINI 6 purchased before mid-2026 (Super Mode era, `key0`-`key5` config
@@ -74,8 +95,10 @@ we've confirmed it can do via its "Preset MIDI Out" per-footswitch config.
 - `code.py` — stock firmware, still live on the device (`import
   midicaptain6s`). Left untouched until the draft is bench-tested.
 - `code_draft.py` — draft replacement firmware (untested on hardware).
-  Deliberately kept as a separate file rather than overwriting `code.py`
-  until validated per `docs/TESTING.md`.
+  Dual-boot: reads switch "C" once at startup, then either hands off to
+  stock `midicaptain6s` unmodified or runs the custom QC bidirectional
+  logic. Deliberately kept as a separate file rather than overwriting
+  `code.py` until validated per `docs/TESTING.md`.
 - `docs/HARDWARE.md` — GPIO pinout, NeoPixel/UART pins, known risks
 - `docs/PROTOCOL.md` — full MIDI CC scheme, both outgoing (MINI6→QC) and
   incoming (QC→MINI6 state echo)

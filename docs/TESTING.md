@@ -17,6 +17,13 @@ later steps are hard to debug if an earlier assumption was wrong.
 - [ ] Copy `code_draft.py` to the device root as `code.py` (per the
       standard PaintAudio USB-mode process: hold switch 1 at power-on,
       mount drive, replace `code.py`).
+- [ ] Power on **without** holding switch "C". Confirm stock Super Mode
+      loads exactly as before (QUAD page, LEDs/behavior unchanged). This
+      is the dual-boot selector's default path — if this regresses, stock
+      usage for both rigs breaks, not just the new QC feature.
+- [ ] Power on **holding switch "C"**. Confirm the device does NOT run
+      stock Super Mode — this is the QC branch. Continue the rest of this
+      checklist with "C" held at every subsequent power-on.
 - [ ] Power on normally (not in USB mode) with a serial console attached
       if possible (helps see any tracebacks).
 - [ ] Press each of the 6 switches one at a time. Confirm no crash/hang.

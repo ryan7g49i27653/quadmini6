@@ -28,6 +28,11 @@ performance context.
 
 Total 18 NeoPixels, single data line.
 
+**Switch "C" (GP11) is dual-purpose in `code_draft.py`:** read once at
+power-on as the stock-vs-QC firmware selector (hold = load QC firmware),
+then — only within the QC branch — reused for its normal runtime function
+(Stomp/Scene mode toggle). See `docs/PROTOCOL.md`.
+
 ## Other confirmed pins
 
 | Function | GPIO |
