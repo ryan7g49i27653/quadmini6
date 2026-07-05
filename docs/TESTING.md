@@ -203,9 +203,8 @@ designed. Palette colors look right; no tuning needed.**
 
 ## 10. Three-state LEDs — dim/bright/unknown (added 2026-07-05)
 
-**Bench-tested 2026-07-05: everything below confirmed working. Only
-adjustment: dim level read slightly too bright at `DIM_DIVISOR = 6`;
-bumped to 8 — reconfirm on next flash.**
+**Bench-tested 2026-07-05: everything below confirmed working, including
+the adjusted dim level (`DIM_DIVISOR = 8`). Section complete.**
 
 Gig View LEDs are now never fully off: bright scene color = active, dim
 scene color = inactive, white = color not learned (boot, or since the
@@ -227,9 +226,8 @@ static green/red/orange/yellow defaults are retired.
       four should drop to dim white (previous preset's colors forgotten).
 - [x] Send CC 101 value 0 with switch "1" lit: should go bright white
       (active but unknown), then dim white after leaving the scene.
-- [ ] Dim level check: `DIM_DIVISOR = 6` confirmed slightly too bright on
-      bench; now 8 — reflash and confirm the new dim level reads right
-      (visible, clearly not-active, colors still tellable apart).
+- [x] Dim level check: `DIM_DIVISOR = 6` confirmed slightly too bright on
+      bench; bumped to 8 — **confirmed as desired on hardware 2026-07-05.**
 - [x] Optional, QC-side: in Cortex Control's Preset MIDI Out panel, check
       whether one of the 8 scene entries (AI-DII — the same entries that
       send the CC 100 value 1-8 echoes) can hold MORE than one message.

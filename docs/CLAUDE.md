@@ -203,16 +203,7 @@ at the top of `code_draft.py` and `docs/PROTOCOL.md` for details.
 
 Active:
 
-1. Three-state Gig View LEDs (dim/bright/unknown) — **bench-tested
-   2026-07-05, working**: inactive switches show their learned scene
-   color dim instead of off; white = color not learned. CC 100 value 0
-   now also forgets learned colors; CC 101-104 value 0 now means "forget"
-   (the static green/red/orange/yellow defaults are retired). QC-side
-   "press to learn" confirmed and configured (Preset MIDI Out scene
-   entries hold multiple messages, so color CCs ride with the CC 100
-   echoes). One loose end: `DIM_DIVISOR` bumped 6 → 8 (dim read slightly
-   too bright) — reconfirm on next flash, then move this to Done.
-2. Further featureset ideas from the user (raised 2026-07-05).
+1. Further featureset ideas from the user (raised 2026-07-05).
 
 Parked — boot-time display noise (revisit later, user decision
 2026-07-05). The white pixelated flash between power-on and the black
@@ -240,4 +231,7 @@ Done (kept for context): supersetup backup (2026-07-04); flash + full
 resolved (2026-07-05); debounce confirmed good at 30ms (2026-07-05);
 per-preset LED color override via CC 101-104 designed, implemented, and
 bench-confirmed across multiple banks/presets, first flash, palette
-needing no tuning (2026-07-05) — see `docs/PROTOCOL.md` for the scheme.
+needing no tuning (2026-07-05) — see `docs/PROTOCOL.md` for the scheme;
+three-state Gig View LEDs (bright = active, dim = inactive, white = color
+not learned) fully bench-confirmed including the final dim level,
+`DIM_DIVISOR = 8` (2026-07-05).
