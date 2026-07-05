@@ -179,6 +179,10 @@ at the top of `code_draft.py` and `docs/PROTOCOL.md` for details.
 
 ## File inventory
 
+- `README.md` (repo root) — comprehensive user-facing guide: prerequisites,
+  cabling, flashing, QC-side configuration, behavior expectations, full
+  CC/hex reference tables, troubleshooting. Keep it in sync when the
+  protocol or behavior changes.
 - `code.py` — in the repo this is still the stock one-liner (`import
   midicaptain6s`); on the device it has been replaced by `code_draft.py`'s
   contents since the 2026-07-05 bench testing.
