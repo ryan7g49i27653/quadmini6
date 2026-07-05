@@ -21,7 +21,7 @@ Bench-validated on real hardware 2026-07-05 and in live use.
 |---|---|
 | PaintAudio MIDI Captain MINI 6 | RP2040-based, running stock CircuitPython 7.3.1 (`raspberry_pi_pico` board ID). Pre-mid-2026 stock firmware (Super Mode era) is what this was built against |
 | Neural DSP Quad Cortex | Any model with **Preset MIDI Out** support (per-footswitch and On Preset Load messages — see QC manual 4.0.0, pp. 88–94) |
-| 2× 5-pin DIN MIDI cables | Bidirectional sync requires **both** directions cabled (see §3) |
+| 2× MIDI cables | Bidirectional sync requires **both** directions cabled (see §3). Full-size QC: 5-pin DIN both ends. QC Mini: 5-pin DIN on the MINI 6 end, 1/8" (3.5mm) TRS on the QC end |
 | USB-C/data cable + computer | Only needed for flashing and for Cortex Control configuration |
 
 ### Software / configuration tools
@@ -73,9 +73,16 @@ Reverting to stock permanently: restore `code.py` to
 Both MIDI directions are required for bidirectional sync:
 
 ```
-MINI 6  MIDI OUT  ──5-pin DIN──▶  MIDI IN   Quad Cortex
-MINI 6  MIDI IN   ◀──5-pin DIN──  MIDI OUT  Quad Cortex
+MINI 6  MIDI OUT  ──────────▶  MIDI IN   Quad Cortex
+MINI 6  MIDI IN   ◀──────────  MIDI OUT  Quad Cortex
 ```
+
+Connector types differ by QC model — the MINI 6 end is always 5-pin DIN:
+
+| QC model | MINI 6 end | QC end |
+|---|---|---|
+| Quad Cortex (full size) | 5-pin DIN | 5-pin DIN |
+| Quad Cortex Mini | 5-pin DIN | 1/8" (3.5mm) TRS |
 
 - **MINI 6 → QC** carries the switch commands (scene selects, Gig View,
   mode changes).
