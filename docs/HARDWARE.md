@@ -28,10 +28,13 @@ performance context.
 
 Total 18 NeoPixels, single data line.
 
-**Switch "C" (GP11) is dual-purpose in `code_draft.py`:** read once at
-power-on as the stock-vs-QC firmware selector (hold = load QC firmware),
-then — only within the QC branch — reused for its normal runtime function
-(Stomp/Scene mode toggle). See `docs/PROTOCOL.md`.
+**Switch "A" (GP9) is dual-purpose in `code_draft.py`:** read once at
+power-on as the QC-vs-stock firmware selector (hold = load stock; default,
+nothing held, loads QC), then — only within the QC branch — reused for its
+normal runtime function (select Gig View C2, CC 41). Flipped from switch
+"C" to switch "A" 2026-07-05 now that QC is the default boot path; switch
+"C" is back to being solely the runtime Stomp/Scene toggle. See
+`docs/PROTOCOL.md`.
 
 ## Other confirmed pins
 
@@ -53,9 +56,13 @@ Display driver in `/lib`: `adafruit_st7789.mpy`. Used minimally in
 `code_draft.py`'s QC branch as of 2026-07-04 — shows `wallpaper/wp5.bmp`
 (Neural DSP logo, confirmed 240x240, 4bpp indexed) once at boot as a
 static "you're in QC mode" indicator, no live updates, no PC/CC values, no
-battery status. Untested on hardware; see known unknown #3 in
-`code_draft.py`'s docstring for the reset/rowstart/rotation assumptions
-that need verifying on first flash.
+battery status. Bench-tested 2026-07-05: `reset=None` and `rotation=0`
+were correct; `rowstart=0` was not (needed `rowstart=80` to fix a garbage
+band across the top of the panel) — see known unknown #3 in
+`code_draft.py`'s docstring. Also bench-observed 2026-07-05: the panel
+shows leftover GRAM noise (a white pixelated screen) for a beat before the
+logo finishes painting in; fixed by painting a solid black frame
+immediately after display init, before decoding/loading the bitmap.
 
 ## Known risks / unknowns to verify
 
