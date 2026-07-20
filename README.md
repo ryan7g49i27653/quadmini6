@@ -1,5 +1,17 @@
 # MIDI Captain MINI 6 ↔ Quad Cortex Bidirectional Firmware
 
+I bought a Quad Cortex Mini and wanted an easier/quicker way to get to 
+bank two of the presets in a live scenario. I had a MINI 6 laying around
+so Claude and I got to work on coming-up with some programming to
+integrate the two systems. Goal being, I can control bank 2 on the QC
+without having to first move to bank 2 in order to control them with
+switches. When time is of the essence live, this matters. Being the picky
+guy I am, I wanted the LEDs on the MINI 6 to match the color of the
+bank 2 scene, and so the QC sends a MIDI code to the MINI 6 to tell it
+which color to use for the scene.
+
+## Technical
+
 Custom CircuitPython firmware for the PaintAudio **MIDI Captain MINI 6**
 that provides true **bidirectional state sync** with a Neural DSP
 **Quad Cortex (QC)** — the MINI 6's LEDs reflect what is *actually
