@@ -5,3 +5,5 @@ __pycache__/
 
 # Third-party manuals kept locally for reference only (copyright, repo bloat)
 docs/*.pdf
+# Device vendor-key folder — kept local only (restore as license/ when copying to the pedal)
+stock-license/
