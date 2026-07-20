@@ -7,3 +7,5 @@ __pycache__/
 docs/*.pdf
 # Device vendor-key folder — kept local only (restore as license/ when copying to the pedal)
 stock-license/
+# Stock vendor firmware (contains device key) — already present on a stock MINI 6
+lib/midicaptain6s.mpy
