@@ -45,6 +45,9 @@ Mode config (still true for custom firmware):
   like its sibling CC 62 ("ignore duplicate PC"), where the *value itself*
   determines open vs. closed, not just message presence. Sending a fixed
   127 on every press does NOT toggle; you must alternate 127/0.
+  Re-proved 2026-07-21 by direct observation: a 127 sent while Gig View
+  was already open was a no-op (it did not close), which a toggle
+  interpretation would contradict.
 - CC 47 values 0/1/2 map to QC Modes Preset/Scene/Stomp respectively (per
   Neural DSP's own manual). We only use 1 and 2 (Scene/Stomp), skipping
   Preset mode entirely, since Preset-mode footswitch behavior isn't part
@@ -83,6 +86,10 @@ CC 100 was chosen because it's outside the QC's reserved incoming CC list
 collision risk against anything the QC itself listens for.
 
 ### MINI 6 LED response logic
+
+(As of 2026-07-21 this logic is implemented in `qc_logic.py`
+(`GigViewTracker`), separate from the hardware code, and regression-
+tested on desktop: `python3 tests/test_qc_logic.py`.)
 
 The MINI 6's four Gig View switches (1/2/A/B) only ever target Page II
 (A2-D2) — they have no reason to distinguish *which* Page I patch is
@@ -228,6 +235,14 @@ Two boot-state defaults follow from this, decided 2026-07-04:
   guess — the QC always boots with Gig View closed (confirmed: it always
   requires a swipe-up or switch press to open), so the default is exactly
   correct, not just a best-effort assumption.
+- **Local state persists across preset loads (bench-settled 2026-07-21).**
+  The QC keeps Gig View open when a preset changes, so `gig_view_open`
+  and `next_press_is_stomp` deliberately survive the CC 100 value 0
+  preset-load clear (which only touches scene state and colors). A fix
+  that reset them on preset load was tried and reverted the same day:
+  with Gig View open, it dimmed switch "3" and made the first press a
+  no-op (re-sending "open" to an already-open QC) before falling back in
+  sync.
 - **Switch "C" (Mode) defaults to Scene at boot.** Unlike Gig View, Mode
   is *not* fixed at boot — the QC remembers whatever mode was active when
   it was last powered off, and there's no way to query it. In practice the

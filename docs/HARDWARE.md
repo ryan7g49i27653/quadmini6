@@ -11,9 +11,9 @@ line. Switch "1" = GP1 was independently confirmed from this device's own
 stock `boot.py` (used as the "hold at boot to enter USB mode" pin), which
 matches the PySwitch data exactly — good independent cross-check.
 
-**Not yet independently verified on this specific physical unit** — verify
-via the bench test in `TESTING.md` before relying on any of this in a
-performance context.
+**Bench-verified on this specific physical unit 2026-07-05** — every pin
+below behaved as documented during the full `TESTING.md` checkout
+(switches, LED groups, UART MIDI both directions, display).
 
 ## Switch GPIO + NeoPixel pixel index map
 
@@ -50,7 +50,11 @@ normal runtime function (select Gig View C2, CC 41). Flipped from switch
 | Expression pedal 1 | GP27 |
 | Expression pedal 2 | GP28 |
 
-MIDI UART baud rate: 31250 (MIDI standard).
+MIDI UART baud rate: 31250 (MIDI standard). Since 2026-07-21 the
+firmware opens the UART with `receiver_buffer_size=256` (default is 64
+bytes ≈ 4ms at MIDI baud — too tight for a preset-load 5-CC burst with
+any Clock/Active Sensing interleaved) and drains up to 8 messages per
+main-loop pass.
 
 Display driver in `/lib`: `adafruit_st7789.mpy`. Used minimally in
 `code_draft.py`'s QC branch as of 2026-07-04 — shows `wallpaper/wp5.bmp`
@@ -66,7 +70,7 @@ immediately after display init, before decoding/loading the bitmap.
 
 ## Known risks / unknowns to verify
 
-### 1. GP24 / GP25 reserved-pin conflict (possible, unconfirmed on this unit)
+### 1. GP24 / GP25 reserved-pin conflict — RESOLVED 2026-07-05: not an issue on this unit
 
 On genuine Raspberry Pi Pico modules, GP23/24/25 are internally used for
 SMPS mode select, VBUS sense, and the onboard LED respectively. A separate
@@ -81,11 +85,12 @@ modification — this device's `boot_out.txt` identifies as
 onboard regulator/LED circuitry that reserves those pins on a genuine Pico
 dev board.
 
-**If switch "2" or "3" don't register presses reliably, this is the first
-thing to suspect.** Fallback: remap those two switches to spare GPIOs
-(GP19/GP20 have precedent as substitutes from the DIY builder's report).
+**Resolved on bench 2026-07-05: switches "2" and "3" work as shipped on
+GP24/GP25 — no remap needed.** If they ever misbehave after a hardware
+change, the fallback remains remapping to spare GPIOs (GP19/GP20 have
+precedent as substitutes from the DIY builder's report).
 
-### 2. UART vs. USB MIDI (unresolved, contradictory evidence)
+### 2. UART vs. USB MIDI — RESOLVED 2026-07-05: UART works both directions
 
 The pinout table explicitly labels GP16/17 as `uart_midi_tx`/`uart_midi_rx`.
 However, one code comment from the PySwitch project states: *"USB Midi
@@ -98,9 +103,10 @@ real UART path exists in hardware. The contradictory comment may refer to
 a different device/config path, or may indicate the UART needs different
 setup than a simple `busio.UART()` call.
 
-**Resolution:** the draft `code.py` uses UART as primary, with a
-commented-out `usb_midi.ports[]` fallback ready to swap in if UART proves
-silent on first test.
+**Resolved on bench 2026-07-05: `busio.UART` on GP16/17 works in both
+directions out of the box** — the "no UART" comment did not apply to this
+device. The commented-out `usb_midi.ports[]` fallback remains in
+`code_draft.py` in case a future unit differs.
 
 ## Library inventory available on-device (`/lib`)
 
@@ -117,5 +123,8 @@ silent on first test.
   rendering planned — the QC branch only ever shows the static logo).
 - `asyncio` — available if an async event loop structure is preferred over
   the draft's simple polling `while True` loop.
-- `midicaptain6s.mpy` — **stock application, do not import.** This is what
-  we're replacing.
+- `midicaptain6s.mpy` — **stock application, do not import** (except via
+  the dual-boot selector's stock branch). This is what we're replacing.
+  Device-local only: deliberately not committed to the repo, since the
+  binary embeds the per-device license key (`license/lis.dat`, same
+  story). Never delete either from the device.

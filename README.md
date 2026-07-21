@@ -21,7 +21,10 @@ only track its own local button presses; this replaces that with a
 ground-truth MIDI echo loop, while keeping stock fully available via a
 dual-boot selector.
 
-Bench-validated on real hardware 2026-07-05 and in live use.
+Bench-validated on real hardware 2026-07-05 and in live use. Hardened
+2026-07-21 (code review → burst-proof MIDI receive, guarded stock import,
+boot settle delay, CircuitPython version pin) with the protocol logic
+extracted to `qc_logic.py` and covered by desktop regression tests.
 
 ---
 
@@ -31,7 +34,7 @@ Bench-validated on real hardware 2026-07-05 and in live use.
 
 | Item | Notes |
 |---|---|
-| PaintAudio MIDI Captain MINI 6 | RP2040-based, running stock CircuitPython 7.3.1 (`raspberry_pi_pico` board ID). Pre-mid-2026 stock firmware (Super Mode era) is what this was built against |
+| PaintAudio MIDI Captain MINI 6 | RP2040-based, running stock CircuitPython 7.3.1 (`raspberry_pi_pico` board ID). Pre-mid-2026 stock firmware (Super Mode era) is what this was built against. The firmware hard-checks for CircuitPython **7.x** at boot and refuses to run on anything else (CP 9 removed APIs it uses) |
 | Neural DSP Quad Cortex | Any model with **Preset MIDI Out** support (per-footswitch and On Preset Load messages — see QC manual 4.0.0, pp. 88–94) |
 | 2× MIDI cables | Bidirectional sync requires **both** directions cabled (see §3). Full-size QC: 5-pin DIN both ends. QC Mini: 5-pin DIN on the MINI 6 end, 1/8" (3.5mm) TRS on the QC end |
 | USB-C/data cable + computer | Only needed for flashing and for Cortex Control configuration |
@@ -57,15 +60,18 @@ The firmware only imports what stock already ships:
 | `qc_logic.py` | Pure Gig View protocol/LED logic imported by the firmware — **required**, copy as-is to the device root |
 | `boot.py` | **Stock, unmodified** — provides the hold-switch-"1" USB drive mode |
 | `wallpaper/wp5.bmp` | Neural DSP logo (240×240, 4bpp indexed) shown in QC mode. Optional at runtime: if missing, an error prints to serial and the firmware runs on without a screen |
-| `/lib/*` | Stock library set, untouched |
+| `/lib/*` | Stock library set, untouched. Note: `lib/midicaptain6s.mpy` (the stock app) is **deliberately not in this repo** — it embeds the device's license key. It ships on every stock MINI 6; never delete it from the device |
+| `license/` | Stock per-device vendor-key folder — also **not in this repo**; leave the device's own copy in place |
 | `supersetup/` | Stock Super Mode config pages — still used by the stock boot path |
 
 ---
 
 ## 2. Installation / flashing
 
-1. **Back up** the device's `supersetup/` folder and `boot.py` if you
-   haven't already (known-working fallback).
+1. **Back up** the device's `supersetup/` folder, `boot.py`,
+   `lib/midicaptain6s.mpy`, and `license/` if you haven't already. The
+   last two are per-device vendor files this repo intentionally does not
+   contain — the device's own copies are the only ones you have.
 2. Hold switch **"1"** while powering on → the MINI 6 mounts as a USB
    drive (`CIRCUITPY`). Note: the firmware still boots and runs normally
    while the drive is mounted, which is handy for live editing.
@@ -76,6 +82,10 @@ The firmware only imports what stock already ships:
    silently leaves the old firmware in place — this bit us during
    development.
 5. Power-cycle. Done — QC mode is the default boot.
+
+Optional pre-flight check (no hardware needed): `python3
+tests/test_qc_logic.py` runs the Gig View protocol regression tests
+against the exact `qc_logic.py` you're about to copy.
 
 Reverting to stock permanently: restore `code.py` to
 `import midicaptain6s`. (Day to day you don't need this — see §4.)
@@ -237,7 +247,7 @@ these two LEDs are optimistic local state, same ceiling stock always had:
 
 | Switch | States | Boot default | Accuracy |
 |---|---|---|---|
-| 3 | White = Gig View open, dim gray = closed | Closed | Exact at boot (QC always boots closed). Goes stale only if you open Gig View by swiping the QC's screen |
+| 3 | White = Gig View open, dim gray = closed | Closed | Exact at boot (QC always boots closed). Stays correct across preset loads — the QC keeps Gig View open on preset change and the firmware deliberately preserves its state too (bench-confirmed 2026-07-21). Goes stale only if you open Gig View by swiping the QC's screen |
 | C | Magenta = Stomp, blue = Scene | Scene | Best guess (QC remembers last mode); a wrong guess self-corrects within 1–2 presses since CC 47 is absolute, not a toggle |
 
 ### Display
@@ -334,6 +344,7 @@ Any other value is ignored. Global LED brightness is 0.3
 | `tests/test_qc_logic.py` | Desktop protocol regression tests (`python3 tests/test_qc_logic.py`) |
 | `code.py` | Stock one-liner, kept for reference |
 | `boot.py`, `supersetup/`, `wallpaper/`, `lib/` | Device file mirrors (stock + assets) |
+| `TODO.md` | 2026-07-20 code-review findings and their resolutions (all closed 2026-07-21) |
 | `docs/CLAUDE.md` | Project status, decisions log, TO-DO |
 | `docs/PROTOCOL.md` | Full MIDI protocol rationale and details |
 | `docs/HARDWARE.md` | GPIO pinout, NeoPixel map, hardware notes |

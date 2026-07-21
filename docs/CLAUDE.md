@@ -147,6 +147,40 @@ at the top of `code_draft.py` and `docs/PROTOCOL.md` for details.
   The selector switch is dual-purpose: read once at power-on for firmware
   selection, then (only in the QC branch) reused for its normal runtime
   function (Gig View C2 / CC 41).
+- Code review of `code_draft.py` 2026-07-20; findings tracked in
+  `TODO.md` at the repo root, all closed 2026-07-21. Fixes applied and
+  bench-tested 2026-07-21: bounded MIDI drain (8 msgs/pass) with a
+  256-byte UART receive buffer (a preset-load 5-CC burst could overrun
+  the 64-byte default), guarded stock `midicaptain6s` import (falls
+  through to the QC branch instead of dying at the REPL), and a 50ms
+  settle delay on the six switch pull-ups before the `last_state`
+  snapshot (prevents a phantom press at boot).
+- **Bench discovery 2026-07-21: the QC keeps Gig View open across preset
+  loads.** A review fix that reset `gig_view_open`/`next_press_is_stomp`
+  on CC 100 value 0 was reverted the same day — it desynced switch "3"
+  (dim LED, dead first press) whenever a preset loaded with Gig View
+  open. Local optimistic state now deliberately persists across preset
+  loads. The same observation re-proved CC 46 is a value-set (127 sent
+  while open was a no-op, not a close), settling the review's open
+  semantics question.
+- Refactor 2026-07-21: the incoming-CC protocol and LED color logic
+  extracted to `qc_logic.py` (`GigViewTracker`) — hardware-free, runs on
+  desktop CPython, covered by 14 stdlib-only tests in
+  `tests/test_qc_logic.py`. **Deployment now requires copying
+  `qc_logic.py` to the device root alongside `code.py`.** Also added a
+  loud CircuitPython 7.x version check at the top of `code_draft.py`
+  (CP 9 removed `display.show()`/`displayio.FourWire`). The debounce
+  predicate stays inline in the main loop (hot-path cost). Declined:
+  `time.monotonic_ns()` migration — the unit is never powered long
+  enough for float-resolution decay to matter.
+- Repo hygiene 2026-07-21: MIT license added (as `LICENSE`); the stock
+  vendor files `license/` (per-device key, `lis.dat`) and
+  `lib/midicaptain6s.mpy` (stock app, embeds that same key) were removed
+  from the repo and **scrubbed from git history** (history rewritten and
+  force-pushed — old clones must be re-cloned). Both are kept locally,
+  gitignored (`stock-license/` and `lib/midicaptain6s.mpy` on disk); the
+  device's own copies are authoritative. Any full-filesystem restore
+  must preserve the device's `lib/midicaptain6s.mpy` and `license/`.
 - User has NOT yet updated PaintAudio firmware and does not plan to for
   this project — device is running whatever shipped with a MIDI Captain
   MINI 6 purchased before mid-2026 (Super Mode era, `key0`-`key5` config
@@ -165,7 +199,9 @@ at the top of `code_draft.py` and `docs/PROTOCOL.md` for details.
   `adafruit_display_shapes`, `adafruit_display_text`, `adafruit_hid`,
   `adafruit_imageload`, `adafruit_midi` (source, readable), `adafruit_progressbar`,
   `adafruit_ticks.mpy`, `asyncio`, `midicaptain6s.mpy` (stock app — never
-  import it except via the dual-boot selector's stock branch),
+  import it except via the dual-boot selector's stock branch; present on
+  the device and kept locally but NOT committed to the repo — it embeds
+  the per-device license key),
   `neopixel.mpy`, `adafruit_st7789.mpy` (display driver, used by the QC
   branch for the static boot logo).
 - **`boot.py`** on device uses `board.GP1` as the "hold at power-on to enter
@@ -187,9 +223,19 @@ at the top of `code_draft.py` and `docs/PROTOCOL.md` for details.
   midicaptain6s`); on the device it has been replaced by `code_draft.py`'s
   contents since the 2026-07-05 bench testing.
 - `code_draft.py` — the custom firmware, bench-validated on hardware
-  2026-07-05. Dual-boot: reads switch "A" once at startup — held loads
-  stock `midicaptain6s` unmodified, otherwise (default) runs the custom
-  QC bidirectional logic. Flashed to the device as `code.py`.
+  2026-07-05, hardened 2026-07-21. Dual-boot: reads switch "A" once at
+  startup — held loads stock `midicaptain6s` unmodified, otherwise
+  (default) runs the custom QC bidirectional logic. Flashed to the
+  device as `code.py`, together with `qc_logic.py`.
+- `qc_logic.py` — pure Gig View protocol/LED logic (`GigViewTracker`),
+  imported by the QC branch. Hardware-free by design so it runs on
+  desktop CPython too. **Must be on the device root alongside
+  `code.py`.**
+- `tests/test_qc_logic.py` — desktop regression tests for the protocol
+  (14 tests, stdlib only): `python3 tests/test_qc_logic.py`.
+- `TODO.md` (repo root) — 2026-07-20 code-review findings with
+  resolutions; all items closed (done, reverted-with-findings, or
+  declined) as of 2026-07-21.
 - `wallpaper/wp5.bmp` — Neural DSP logo (240x240, 4bpp indexed) shown by
   the QC branch at boot. A runtime dependency of `code_draft.py` on the
   device; display init is wrapped in try/except, so if it's missing or

@@ -237,3 +237,35 @@ static green/red/orange/yellow defaults are retired.
       this up — color CCs now ride alongside the scene echoes, so
       "press to learn" works, and the firmware handles either message
       order within a press.**
+
+## 11. 2026-07-21 hardening round (code-review fixes — see `TODO.md`)
+
+First flash (drain + settle + guarded import + preset-load reset):
+
+- [x] Preset load with color CCs: all four scene LEDs update on a single
+      load, every time (exercises the 8-msg/pass drain + 256-byte UART
+      buffer against the 5-CC burst). **Confirmed 2026-07-21.**
+- [x] Power on normally: no phantom CC reaches the QC at boot; switches
+      responsive (exercises the 50ms settle delay). **Confirmed
+      2026-07-21.**
+- [x] Hold "A" at power-on: stock mode still loads as before.
+      **Confirmed 2026-07-21.**
+- [x] Preset load with Gig View open. **FAILED first flash 2026-07-21:**
+      the preset-load reset dimmed switch "3" and made the first press a
+      no-op — bench-proved the QC actually KEEPS Gig View open across
+      preset loads. The reset was reverted (local state now persists);
+      the same observation settled CC 46 as a value-set, not a toggle.
+
+Second flash (revert + `qc_logic.py` extraction + CP 7.x version pin —
+requires copying BOTH `code_draft.py`-as-`code.py` AND `qc_logic.py`):
+
+- [ ] Preset load with Gig View open: switch "3" stays bright/white and
+      the first press actually closes Gig View (the 2026-07-21 desync is
+      gone).
+- [ ] Switch to Stomp mode, change presets: "C" stays magenta and the QC
+      stays in Stomp (same persistence logic, other switch).
+- [ ] Refactor smoke test: boot LEDs (dim white ×4 + "3"/"C" defaults),
+      one preset load with colors, one scene change bright/dim — proves
+      the `qc_logic.py` wiring end to end.
+- [x] Desktop: `python3 tests/test_qc_logic.py` — 14/14 passing at the
+      time of flashing (2026-07-21).
