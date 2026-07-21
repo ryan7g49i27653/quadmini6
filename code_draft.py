@@ -1,8 +1,10 @@
 """
 Dual-boot MINI 6 firmware -- loads either stock PaintAudio Super Mode or a
 custom QC bidirectional Gig View LED tracker, chosen by a switch held at
-power-on. This replaces `code.py` entirely (both the selector logic and the
-custom firmware below live in this one file).
+power-on. This replaces `code.py` entirely; the pure Gig View protocol/LED
+logic lives in the companion module `qc_logic.py` (ALSO copied to the
+device root), which runs unchanged on desktop CPython so the protocol is
+regression-testable without hardware: `python3 tests/test_qc_logic.py`.
 
 Bench-tested on real hardware 2026-07-05: switches, LEDs, outgoing and
 incoming MIDI, dual-boot selector, and display all confirmed working. The
@@ -80,7 +82,18 @@ Gig View footswitch identities, Channel 1):
 
 import board
 import digitalio
+import sys
 import time
+
+# Hard-pinned to CircuitPython 7.x (7.3.1 on the pedal): CircuitPython 9
+# removed display.show() and displayio.FourWire used below, and the stock
+# 7.x .mpy libraries would not load either. Fail loudly and clearly on a
+# future UF2 upgrade instead of with a confusing error mid-boot.
+if sys.implementation.version[0] != 7:
+    raise RuntimeError(
+        "This firmware targets CircuitPython 7.x; running "
+        + ".".join(str(_v) for _v in sys.implementation.version)
+    )
 
 # ---------------------------------------------------------------------------
 # Firmware selector -- read once at startup, then release the pin either way
@@ -103,7 +116,6 @@ if _load_stock_firmware:
         # REPL (no LEDs, no MIDI). Fall through to the QC firmware instead.
         # Best effort: if the stock module claimed pins before raising, the
         # QC setup below may still fail -- no worse than dying here.
-        import sys
         sys.print_exception(_e)
         _load_stock_firmware = False
 
@@ -116,6 +128,8 @@ if not _load_stock_firmware:
     import adafruit_imageload
     import adafruit_midi
     from adafruit_midi.control_change import ControlChange
+
+    import qc_logic  # pure protocol/LED logic, shared with desktop tests
 
     # -----------------------------------------------------------------------
     # Configuration
@@ -227,7 +241,6 @@ if not _load_stock_firmware:
         # The logo is cosmetic; MIDI/LED sync is the mission. Never let a
         # display fault (missing wp5.bmp, etc.) take the whole firmware
         # down on stage.
-        import sys
         sys.print_exception(_e)
 
     switches = {}
@@ -275,13 +288,11 @@ if not _load_stock_firmware:
     gig_view_open = False           # local optimistic state, switch "3"
     next_press_is_stomp = True      # local optimistic state, switch "C"
 
-    # Per-switch Gig View scene colors, learned from incoming CC 101-104.
-    # None = not learned (shown dim white). CC 100 value 0 (preset load)
-    # forgets all four -- each preset re-teaches its own colors, or the
-    # LEDs honestly say "unknown" instead of lying with stale colors.
-    # lit_switch tracks which scene is active for the bright/dim split.
-    scene_colors = {"1": None, "2": None, "A": None, "B": None}
-    lit_switch = None
+    # Scene colors + active scene, learned from incoming CCs. The
+    # semantics live in qc_logic.GigViewTracker so they can be
+    # regression-tested on a desktop without hardware
+    # (tests/test_qc_logic.py).
+    tracker = qc_logic.GigViewTracker(QC_COLOR_PALETTE, COLOR_UNKNOWN, DIM_DIVISOR)
 
     last_state = {name: switches[name].value for name in switches}
     last_change = {name: 0.0 for name in switches}
@@ -292,20 +303,12 @@ if not _load_stock_firmware:
         pixels[b] = color
         pixels[c] = color
 
-    def gigview_led_color(name):
-        # Bright scene color when active; dim scene color when inactive;
-        # white in either case if the color hasn't been learned yet.
-        color = scene_colors[name] or COLOR_UNKNOWN
-        if name == lit_switch:
-            return color
-        return (color[0] // DIM_DIVISOR, color[1] // DIM_DIVISOR, color[2] // DIM_DIVISOR)
-
-    def repaint_gigview_leds():
-        for name in ("1", "2", "A", "B"):
-            set_pixel_group(name, gigview_led_color(name))
+    def paint_updates(updates):
+        for _name, _color in updates:
+            set_pixel_group(_name, _color)
 
     # Initial LED state on boot
-    repaint_gigview_leds()
+    paint_updates(tracker.all_led_updates())
     set_pixel_group("3", COLOR_GIGVIEW_OFF)
     set_pixel_group("C", COLOR_SCENE)  # QC has no MIDI feedback for current Mode; Scene
                                         # is the assumed default since that's where the QC
@@ -350,51 +353,16 @@ if not _load_stock_firmware:
     # Incoming state sync: QC echo -> LEDs
     # -----------------------------------------------------------------------
 
-    GIGVIEW_ECHO_MAP = {5: "1", 6: "2", 7: "A", 8: "B"}
-    COLOR_CC_TO_SWITCH = {101: "1", 102: "2", 103: "A", 104: "B"}
-
     def handle_incoming_cc(cc_num, value):
-        global lit_switch
-
-        if cc_num == 100:
-            if value == 0:
-                # Explicit "zero out" (each preset's On Preset Load config):
-                # no scene active AND forget all learned colors -- the new
-                # preset either re-teaches its own via CC 101-104 or the
-                # LEDs show dim white ("unknown") rather than stale colors.
-                lit_switch = None
-                for _name in scene_colors:
-                    scene_colors[_name] = None
-                # gig_view_open / next_press_is_stomp deliberately persist
-                # across preset loads: bench-confirmed 2026-07-21 that the
-                # QC keeps Gig View open on preset change, so resetting
-                # here desynced "3" (dim LED, dead first press) whenever a
-                # preset loaded with Gig View open. Mode ("C") gets the
-                # same treatment -- it has no MIDI feedback either way.
-                repaint_gigview_leds()
-                pixels.show()
-            elif value in (1, 2, 3, 4):
-                # A Page I scene is active: nothing on Page II is, so no
-                # switch is bright. Learned colors keep showing dim.
-                lit_switch = None
-                repaint_gigview_leds()
-                pixels.show()
-            elif value in GIGVIEW_ECHO_MAP:
-                lit_switch = GIGVIEW_ECHO_MAP[value]
-                repaint_gigview_leds()
-                pixels.show()
-        elif cc_num in COLOR_CC_TO_SWITCH:
-            # Per-switch scene color: 1-8 picks from QC_COLOR_PALETTE,
-            # 0 forgets (back to dim white), anything else is ignored.
-            # Applies immediately, bright or dim as appropriate.
-            name = COLOR_CC_TO_SWITCH[cc_num]
-            if value == 0:
-                scene_colors[name] = None
-            elif value in QC_COLOR_PALETTE:
-                scene_colors[name] = QC_COLOR_PALETTE[value]
-            else:
-                return
-            set_pixel_group(name, gigview_led_color(name))
+        # Semantics (echo maps, color learning, preset-load zero-out) live
+        # in qc_logic.GigViewTracker. gig_view_open / next_press_is_stomp
+        # deliberately persist across preset loads: bench-confirmed
+        # 2026-07-21 that the QC keeps Gig View open on preset change, so
+        # resetting them desynced "3" (dim LED, dead first press). Mode
+        # ("C") gets the same treatment -- no MIDI feedback either way.
+        updates = tracker.handle_cc(cc_num, value)
+        if updates:
+            paint_updates(updates)
             pixels.show()
 
     # -----------------------------------------------------------------------

@@ -54,6 +54,7 @@ The firmware only imports what stock already ships:
 | File | Purpose |
 |---|---|
 | `code.py` | This firmware (flash `code_draft.py` from this repo as `code.py`) |
+| `qc_logic.py` | Pure Gig View protocol/LED logic imported by the firmware — **required**, copy as-is to the device root |
 | `boot.py` | **Stock, unmodified** — provides the hold-switch-"1" USB drive mode |
 | `wallpaper/wp5.bmp` | Neural DSP logo (240×240, 4bpp indexed) shown in QC mode. Optional at runtime: if missing, an error prints to serial and the firmware runs on without a screen |
 | `/lib/*` | Stock library set, untouched |
@@ -69,7 +70,8 @@ The firmware only imports what stock already ships:
    drive (`CIRCUITPY`). Note: the firmware still boots and runs normally
    while the drive is mounted, which is handy for live editing.
 3. Copy `code_draft.py` from this repo to the device root as **`code.py`**
-   (replacing the stock one-liner). Ensure `wallpaper/wp5.bmp` exists.
+   (replacing the stock one-liner), and copy `qc_logic.py` to the device
+   root as-is. Ensure `wallpaper/wp5.bmp` exists.
 4. **Eject the drive cleanly before power-cycling.** An un-flushed copy
    silently leaves the old firmware in place — this bit us during
    development.
@@ -328,6 +330,8 @@ Any other value is ignored. Global LED brightness is 0.3
 | Path | Contents |
 |---|---|
 | `code_draft.py` | The firmware (flash as `code.py`) |
+| `qc_logic.py` | Pure protocol/LED logic (device + desktop) |
+| `tests/test_qc_logic.py` | Desktop protocol regression tests (`python3 tests/test_qc_logic.py`) |
 | `code.py` | Stock one-liner, kept for reference |
 | `boot.py`, `supersetup/`, `wallpaper/`, `lib/` | Device file mirrors (stock + assets) |
 | `docs/CLAUDE.md` | Project status, decisions log, TO-DO |

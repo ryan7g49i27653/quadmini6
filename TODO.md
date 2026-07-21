@@ -80,26 +80,39 @@ From code review of `code_draft.py`, 2026-07-20.
 
 ## Nice to have
 
-- [ ] **Switch to `time.monotonic_ns()`** (`code_draft.py:368`)
+- [x] **Switch to `time.monotonic_ns()`** (`code_draft.py:368`)
+  *(declined 2026-07-21 — the unit is never powered long enough for the
+  float-resolution decay to matter)*
 
   `time.monotonic()` returns a float that loses resolution as uptime grows
   (~0.006s spacing at ~1 day, ~0.03s at ~6 days) — eventually degenerate
   against `DEBOUNCE_S = 0.03`. Irrelevant for a gig, relevant for an
   always-on rig. Use integer nanosecond comparisons.
 
-- [ ] **Replace tuple-truthiness check with `is None`** (`code_draft.py:267`)
+- [x] **Replace tuple-truthiness check with `is None`** (`code_draft.py:267`)
+  *(done 2026-07-21 — the check now lives in `qc_logic.GigViewTracker.led_color`
+  as an explicit `is None` test)*
 
   `scene_colors[name] or COLOR_UNKNOWN` is correct today (`(0,0,0)` is
   truthy) but fragile if colors ever become lists or ints.
 
-- [ ] **Pin the CircuitPython version loudly** (`code_draft.py:180, 195-205`)
+- [x] **Pin the CircuitPython version loudly** (`code_draft.py:180, 195-205`)
+  *(done 2026-07-21 — top of `code_draft.py` now raises RuntimeError with a
+  clear message unless `sys.implementation.version` is 7.x)*
 
   `display.show()` and `displayio.FourWire` were removed in CircuitPython 9
   (`display.root_group = group`, `fourwire.FourWire`). Correct for the pinned
   7.3.1 — add a version assertion or comment so a future UF2 upgrade fails
   loudly instead of at load.
 
-- [ ] **Extract pure logic for desktop testing**
+- [x] **Extract pure logic for desktop testing**
+  *(done 2026-07-21 — `gigview_led_color` and `handle_incoming_cc` semantics
+  now live in `qc_logic.py` (GigViewTracker), covered by 14 tests in
+  `tests/test_qc_logic.py` (`python3 tests/test_qc_logic.py`, no deps).
+  NOTE: `qc_logic.py` must now be copied to the device root alongside
+  `code.py` — README §1/§2 updated. The debounce predicate stays inline:
+  a per-switch function call in the ~1ms hot loop isn't worth it on the
+  RP2040 for a one-line boolean.)*
 
   Zero automated coverage; "bench-tested" is the only verification.
   `gigview_led_color`, `handle_incoming_cc`, and the debounce predicate are
