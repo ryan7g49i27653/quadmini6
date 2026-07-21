@@ -59,13 +59,20 @@ From code review of `code_draft.py`, 2026-07-20.
   QC at boot. Add a 50ms sleep after configuring switches, before the snapshot.
 
 - [x] **Reset `gig_view_open` and `next_press_is_stomp` on CC 100 value 0** (`code_draft.py:328-338`)
-  *(implemented and bench-tested 2026-07-21)*
+  *(implemented 2026-07-21, then REVERTED the same day: bench testing showed
+  the QC keeps Gig View open across preset loads, so the reset desynced
+  switch "3" — dim LED and a dead first press whenever a preset loaded with
+  Gig View open. Local optimistic state now deliberately persists across
+  preset loads; the original concern below turned out not to occur.)*
 
   Preset load clears `lit_switch` and `scene_colors` but leaves these two
   stale. If the QC closes Gig View on preset change, the switch "3" LED lies
   until pressed twice.
 
-- [ ] **Re-verify CC 46 semantics on bench** (`code_draft.py:301`)
+- [x] **Re-verify CC 46 semantics on bench** (`code_draft.py:301`)
+  *(resolved 2026-07-21: sending 127 while Gig View was already open was a
+  no-op rather than closing it, so CC 46 is a value-set — 127=open, 0=close —
+  not a toggle. The existing send logic is correct; docstring wording fixed.)*
 
   Docstring calls CC 46 a *toggle*, but the code sends `127`/`0` as if it were
   a state set. If the QC toggles on any value, the `0` still toggles and local

@@ -9,8 +9,13 @@ incoming MIDI, dual-boot selector, and display all confirmed working. The
 three original known unknowns below are all resolved.
 
 Review fixes applied 2026-07-21 (bounded MIDI drain + 256B UART buffer,
-guarded stock import, switch settle delay, preset-load reset of local
-optimistic state) -- all bench-tested on real hardware 2026-07-21.
+guarded stock import, switch settle delay) -- all bench-tested on real
+hardware 2026-07-21. A fourth fix (resetting gig_view_open /
+next_press_is_stomp on preset load) was reverted the same day: bench
+showed the QC keeps Gig View open across preset loads, so the reset
+desynced switch "3" (dim LED, dead first press). The same bench result
+proved CC 46 is a value-set (127=open, 0=close), not a toggle: sending
+127 with Gig View already open was a no-op rather than closing it.
 
 SELECTOR: QC firmware is the default at power-on (nothing held). Hold
 switch "A" (GP9) during power-on instead to load stock `midicaptain6s`
@@ -30,7 +35,7 @@ own boot.py cross-check (GP1 = switch "1", matches independently):
 
   Switch "1" -> GP1  -> pixels 0,1,2    -> outgoing CC 39 v127 (Gig View A2)
   Switch "2" -> GP25 -> pixels 3,4,5    -> outgoing CC 40 v127 (Gig View B2)
-  Switch "3" -> GP24 -> pixels 6,7,8    -> outgoing CC 46 toggle (Gig View open/close)
+  Switch "3" -> GP24 -> pixels 6,7,8    -> outgoing CC 46 v127/v0 (Gig View open/close)
   Switch "A" -> GP9  -> pixels 9,10,11  -> outgoing CC 41 v127 (Gig View C2)
   Switch "B" -> GP10 -> pixels 12,13,14 -> outgoing CC 42 v127 (Gig View D2)
   Switch "C" -> GP11 -> pixels 15,16,17 -> outgoing CC 47 toggle (Stomp/Scene)
@@ -349,7 +354,7 @@ if not _load_stock_firmware:
     COLOR_CC_TO_SWITCH = {101: "1", 102: "2", 103: "A", 104: "B"}
 
     def handle_incoming_cc(cc_num, value):
-        global lit_switch, gig_view_open, next_press_is_stomp
+        global lit_switch
 
         if cc_num == 100:
             if value == 0:
@@ -360,14 +365,12 @@ if not _load_stock_firmware:
                 lit_switch = None
                 for _name in scene_colors:
                     scene_colors[_name] = None
-                # Also reset the two locally-owned optimistic states to
-                # their boot assumptions (Gig View closed, Scene mode) --
-                # assumed QC behavior on preset change, bench-verify.
-                # Without this the "3"/"C" LEDs lie until pressed twice.
-                gig_view_open = False
-                next_press_is_stomp = True
-                set_pixel_group("3", COLOR_GIGVIEW_OFF)
-                set_pixel_group("C", COLOR_SCENE)
+                # gig_view_open / next_press_is_stomp deliberately persist
+                # across preset loads: bench-confirmed 2026-07-21 that the
+                # QC keeps Gig View open on preset change, so resetting
+                # here desynced "3" (dim LED, dead first press) whenever a
+                # preset loaded with Gig View open. Mode ("C") gets the
+                # same treatment -- it has no MIDI feedback either way.
                 repaint_gigview_leds()
                 pixels.show()
             elif value in (1, 2, 3, 4):
