@@ -4,7 +4,8 @@ From code review of `code_draft.py`, 2026-07-20.
 
 ## Must fix before next gig
 
-- [ ] **Drain all pending MIDI messages per loop pass** (`code_draft.py:378-380`)
+- [x] **Drain all pending MIDI messages per loop pass** (`code_draft.py:378-380`)
+  *(implemented 2026-07-21 — pending bench test)*
 
   Only one message is drained per iteration. Loop period is ~1-3ms (sleep +
   UART timeout + up to ~0.85ms blocking `pixels.show()`), but a preset load
@@ -29,7 +30,8 @@ From code review of `code_draft.py`, 2026-07-20.
                     timeout=0.001, receiver_buffer_size=256)
   ```
 
-- [ ] **Guard `import midicaptain6s`** (`code_draft.py:89-90`)
+- [x] **Guard `import midicaptain6s`** (`code_draft.py:89-90`)
+  *(implemented 2026-07-21 — pending bench test)*
 
   Unguarded. If the stock module is missing or raises, CircuitPython drops to
   the REPL and the pedal is dead — no LEDs, no MIDI. The display path already
@@ -48,14 +50,16 @@ From code review of `code_draft.py`, 2026-07-20.
 
 ## Should fix
 
-- [ ] **Settle delay before snapshotting switch state** (`code_draft.py:214-219, 255`)
+- [x] **Settle delay before snapshotting switch state** (`code_draft.py:214-219, 255`)
+  *(implemented 2026-07-21 — pending bench test)*
 
   The selector pin gets `time.sleep(0.05)` after enabling its pull-up; the six
   runtime switches get none. `last_state` may capture a floating read,
   producing a phantom press on the first loop pass that sends a real CC to the
   QC at boot. Add a 50ms sleep after configuring switches, before the snapshot.
 
-- [ ] **Reset `gig_view_open` and `next_press_is_stomp` on CC 100 value 0** (`code_draft.py:328-338`)
+- [x] **Reset `gig_view_open` and `next_press_is_stomp` on CC 100 value 0** (`code_draft.py:328-338`)
+  *(implemented 2026-07-21 — pending bench test)*
 
   Preset load clears `lit_switch` and `scene_colors` but leaves these two
   stale. If the QC closes Gig View on preset change, the switch "3" LED lies

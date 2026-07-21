@@ -8,6 +8,10 @@ Bench-tested on real hardware 2026-07-05: switches, LEDs, outgoing and
 incoming MIDI, dual-boot selector, and display all confirmed working. The
 three original known unknowns below are all resolved.
 
+Review fixes applied 2026-07-21 (bounded MIDI drain + 256B UART buffer,
+guarded stock import, switch settle delay, preset-load reset of local
+optimistic state) -- NOT yet bench-tested; see TODO.md.
+
 SELECTOR: QC firmware is the default at power-on (nothing held). Hold
 switch "A" (GP9) during power-on instead to load stock `midicaptain6s`
 for the unrelated DRKG laptop-effects rig. Flipped 2026-07-05 now that QC
@@ -87,8 +91,18 @@ _load_stock_firmware = not _selector.value  # active-low: pressed/held == True
 _selector.deinit()
 
 if _load_stock_firmware:
-    import midicaptain6s
-else:
+    try:
+        import midicaptain6s
+    except Exception as _e:
+        # A broken/missing stock module must not strand the pedal at the
+        # REPL (no LEDs, no MIDI). Fall through to the QC firmware instead.
+        # Best effort: if the stock module claimed pins before raising, the
+        # QC setup below may still fail -- no worse than dying here.
+        import sys
+        sys.print_exception(_e)
+        _load_stock_firmware = False
+
+if not _load_stock_firmware:
     import busio
     import neopixel
     import displayio
@@ -217,8 +231,20 @@ else:
         _io.direction = digitalio.Direction.INPUT
         _io.pull = digitalio.Pull.UP
         switches[_name] = _io
+    # Let the pull-ups settle before the last_state snapshot below -- the
+    # selector pin gets the same 50ms. Without it the snapshot can capture
+    # a floating read and fire a phantom press (a real CC to the QC) on
+    # the first loop pass.
+    time.sleep(0.05)
 
-    uart = busio.UART(board.GP16, board.GP17, baudrate=31250, timeout=0.001)
+    # receiver_buffer_size: the default 64 bytes is only ~4ms of headroom at
+    # 31250 baud. A preset load bursts 5 CCs (CC 100 + 101-104) back-to-back;
+    # with Clock or Active Sensing interleaved the buffer can overrun and
+    # drop CCs silently. 256 gives slack without meaningful RAM cost.
+    uart = busio.UART(
+        board.GP16, board.GP17, baudrate=31250, timeout=0.001,
+        receiver_buffer_size=256,
+    )
     midi = adafruit_midi.MIDI(
         midi_in=uart,
         midi_out=uart,
@@ -323,7 +349,7 @@ else:
     COLOR_CC_TO_SWITCH = {101: "1", 102: "2", 103: "A", 104: "B"}
 
     def handle_incoming_cc(cc_num, value):
-        global lit_switch
+        global lit_switch, gig_view_open, next_press_is_stomp
 
         if cc_num == 100:
             if value == 0:
@@ -334,6 +360,14 @@ else:
                 lit_switch = None
                 for _name in scene_colors:
                     scene_colors[_name] = None
+                # Also reset the two locally-owned optimistic states to
+                # their boot assumptions (Gig View closed, Scene mode) --
+                # assumed QC behavior on preset change, bench-verify.
+                # Without this the "3"/"C" LEDs lie until pressed twice.
+                gig_view_open = False
+                next_press_is_stomp = True
+                set_pixel_group("3", COLOR_GIGVIEW_OFF)
+                set_pixel_group("C", COLOR_SCENE)
                 repaint_gigview_leds()
                 pixels.show()
             elif value in (1, 2, 3, 4):
@@ -375,8 +409,15 @@ else:
                 if current is False:  # active-low: False means pressed
                     on_press(name)
 
-        msg = midi.receive()
-        if msg is not None and isinstance(msg, ControlChange):
-            handle_incoming_cc(msg.control, msg.value)
+        # Drain the queue each pass, bounded so switches never starve. One
+        # message per pass at a ~1-3ms loop period cannot keep up with a
+        # preset load's 5-CC burst, and the buffer overruns if the QC ever
+        # interleaves Clock or Active Sensing.
+        for _ in range(8):
+            msg = midi.receive()
+            if msg is None:
+                break
+            if isinstance(msg, ControlChange):
+                handle_incoming_cc(msg.control, msg.value)
 
         time.sleep(0.001)
