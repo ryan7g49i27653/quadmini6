@@ -10,7 +10,7 @@ three original known unknowns below are all resolved.
 
 Review fixes applied 2026-07-21 (bounded MIDI drain + 256B UART buffer,
 guarded stock import, switch settle delay, preset-load reset of local
-optimistic state) -- NOT yet bench-tested; see TODO.md.
+optimistic state) -- all bench-tested on real hardware 2026-07-21.
 
 SELECTOR: QC firmware is the default at power-on (nothing held). Hold
 switch "A" (GP9) during power-on instead to load stock `midicaptain6s`
