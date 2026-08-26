@@ -208,17 +208,33 @@ at the top of `code_draft.py` and `docs/PROTOCOL.md` for details.
     not exist, so stomp tracking is much closer to ground truth than the
     press-inference model implies. Only a scene that itself changes a
     block's bypass state could still desync one; unobserved so far.
-  - **Bench finding on CC 47:** on a rotation containing only a Hybrid
-    Mode (no Preset mode), CC 47 does nothing at all — once Scene and
-    Stomp merge, the hybrid is not reachable as value 1 *or* value 2.
-    **Modes Configuration is global** (user-confirmed 2026-08-26), not
-    per-preset or per-bank, so switch "C" is dead *everywhere*, not on
-    some banks — it has no fallback role to protect. Its LED still
-    alternates magenta/blue on each press. One of six switches wasted;
-    see TO-DO item 2. No CC is known for selecting a mode rotation or a
-    Hybrid Mode (device configuration, which the QC's MIDI surface
-    generally doesn't expose); not checked against the manual's CC
-    appendix.
+  - **Bench finding on CC 47, then settled against the manual:** on a
+    rotation containing only a Hybrid Mode (no Preset mode), pressing
+    "C" does nothing observable. **Modes Configuration is global**
+    (user-confirmed 2026-08-26), not per-preset or per-bank, so switch
+    "C" is dead *everywhere* — it has no fallback role to protect. Its
+    LED still alternates magenta/blue on each press. One of six switches
+    wasted; see TO-DO item 2.
+  - **QC manual 4.1.0 settles the mechanism** (`docs/` has the PDF,
+    gitignored; its text layer is CID-encoded and does not extract, so
+    quote from the page images): CC 47 addresses a **Mode Slot**, not a
+    named Mode — value 0/1/2 = Slot 1/2/3, whose PRESET/SCENE/STOMP
+    names are only defaults. Reordering modes does not renumber the CC
+    values, and *"if a Mode slot is empty, MIDI messages will not recall
+    any Mode."* Correct the older claim that 0/1/2 *are* Preset/Scene/
+    Stomp — that holds only for a default configuration.
+    - Do NOT restate the stronger claim that the hybrid is "reachable as
+      neither value 1 nor value 2." With one mode in the rotation, a
+      successful recall is as invisible as a rejected one; the bench
+      cannot distinguish them without a MIDI monitor. CC 47 value 0
+      (Slot 1) is untested and the hybrid may have shifted into it.
+    - The real reason "C" is useless for mode selection is simpler than
+      any MIDI limitation: **one mode in the rotation means nothing to
+      select.** Hybrid-vs-default is a Modes Configuration edit, and CC
+      47 only recalls from slots — no CC edits device configuration.
+    - Manual also gives CC 46's exact thresholds (0-63 close, 64-127
+      open), confirming the value-gated finding; CC 45 (Tuner) has the
+      identical shape and CC 44 is Tap Tempo.
 
 ## Environment facts (don't re-derive these)
 
@@ -287,33 +303,33 @@ Active:
 
 1. Further featureset ideas from the user (raised 2026-07-05). Split
    Scene/Stomp shipped 2026-08-26 — see the status bullet above.
-2. **Repurpose switch "C" as a MINI 6-side layout selector** (raised by
-   the user 2026-08-26, designed-not-built). Modes Configuration is
-   global, so with a single Hybrid Mode in the rotation CC 47 is inert
-   everywhere and "C" is a wasted switch with a lying LED — there is no
-   per-bank fallback role to preserve, which was the only reason to
-   leave it alone.
+2. **Give switch "C" an unrelated job** (raised 2026-08-26,
+   designed-not-built). "C" is inert: Modes Configuration is global,
+   the rotation holds one Hybrid Mode, and there is nothing to select.
+   Its LED still alternates magenta/blue, so it is also the pedal's one
+   knowingly-lying LED. One wasted switch out of six.
 
-   Key reframe: the MINI 6 does **not** need a QC mode-select CC for
-   this. It already decides which CCs it sends and which roles it
-   applies, so switching layouts is entirely local and needs no QC
-   cooperation. The obvious target is Gig View **page**: the MINI 6
-   currently only ever addresses Page II (CC 39-42), reaching 4 of the
-   QC's 8 slots. If "C" flipped it to Page I, all 8 become reachable —
-   4 scenes and 4 stomps instead of 2 and 2.
+   Two candidates, both from the 4.1 manual's CC list, both small:
+   - **Tuner, CC 45** — value-gated exactly like CC 46 (0-63 closes,
+     64-127 opens), so it is a near-copy of the switch "3" logic already
+     in `on_press()`: alternate 127/0, track locally, repaint the LED.
+     A dedicated tuner stomp is genuinely useful on stage.
+   - **Tap Tempo, CC 44** — value 0-127 is press emulation, so it is
+     even simpler: send on press, no state to track at all. The LED
+     would need a different idea (blink is out — the main loop must not
+     block), or just leave it a fixed color.
 
-   **Blocking fact to confirm first:** whether CC 35-38 (or whatever the
-   manual's CC appendix lists) select the Page I slots A1-D1, the way
-   CC 39-42 select A2-D2. Everything else follows from that; the design
-   should keep the CC numbers in a table so they are trivially
-   retargetable if the appendix says otherwise.
+   Both are self-contained: no `qc_logic.py` changes, no protocol
+   additions, no QC-side config. Pick one and it is a handful of lines
+   in `on_press()` plus the boot LED default.
 
-   Design consequences to work through when building it: role config
-   (CC 105-108) currently covers 4 switches and would need to cover 8
-   slots, or be re-taught on page flip; the CC 100 v1-8 echo currently
-   assumes Page I is never displayed, and that assumption inverts on the
-   flipped page; and "C" needs a sensible LED scheme for page state
-   (it is locally-tracked with no feedback, same ceiling as today).
+   **Rejected 2026-08-26: "C" as a MINI 6-side Gig View page selector.**
+   The MINI 6 only addresses Page II (CC 39-42), so flipping it to Page
+   I would double its reach to all 8 QC slots, and it needs no QC
+   cooperation — the MINI 6 chooses which CCs it sends. But the user
+   deliberately runs Page I on the QC and Page II on the MINI 6, with
+   the split being the entire point of owning the MINI 6. Do not
+   re-propose this.
 
 Parked — boot-time display noise (revisit later, user decision
 2026-07-05). The white pixelated flash between power-on and the black

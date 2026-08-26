@@ -241,8 +241,11 @@ Notes learned on real hardware:
 
 - CC 46 is value-gated on the QC, not edge-triggered — the value itself
   (127/0) determines open/closed, hence the alternation.
-- CC 47 values 0/1/2 = Preset/Scene/Stomp modes; Preset mode is
-  deliberately unused.
+- CC 47 selects a **Mode Slot**, not a named Mode: value 0 = Slot 1
+  (PRESET by default), 1 = Slot 2 (SCENE), 2 = Slot 3 (STOMP). Those
+  names are only the defaults — editing Modes Configuration changes what
+  each value recalls, and an empty slot recalls nothing (QC manual
+  4.1.0). Preset mode is deliberately unused here.
 - Debounce is 30 ms (`DEBOUNCE_S`) — confirmed solid, no double-fires.
 
 ### LEDs — three-state scene indicators (switches 1/2/A/B)
@@ -305,18 +308,18 @@ these two LEDs are optimistic local state, same ceiling stock always had:
 **Switch "C" and Hybrid Modes (bench-confirmed 2026-08-26):** Modes
 Configuration is a **global** QC setting, not per-preset or per-bank. If
 your rotation contains only a Scene+Stomp Hybrid Mode and no Preset mode,
-CC 47 has nothing to cycle to and pressing "C" does nothing on the QC —
-once the two modes merge, the hybrid is reachable as neither CC 47 value
-1 nor value 2. Because the setting is global, so is the effect: **"C" is
-inert everywhere**, while its LED still alternates magenta/blue on each
-press, showing a mode the QC isn't in.
+pressing "C" does nothing observable — and the reason isn't a MIDI
+limitation, it's that **with one mode in the rotation there is nothing to
+select.** CC 47 recalls a mode from a slot; it never reconfigures the
+slots, and per the 4.1 manual an empty slot recalls nothing. Switching
+between hybrid and non-hybrid is a Modes Configuration edit, which the
+QC doesn't expose over MIDI at all.
 
-That leaves one of six switches doing nothing, which is why "let the
-MINI 6 switch its own layout" is on the TO-DO list (`docs/CLAUDE.md`).
-No CC is known for selecting a mode rotation or a Hybrid Mode — that's
-device configuration, which the QC's MIDI surface generally doesn't
-expose — but a layout switch doesn't need one: the MINI 6 already
-decides which CCs it sends and which roles it applies.
+Because the setting is global, so is the effect: **"C" is inert
+everywhere**, while its LED still alternates magenta/blue on each press,
+showing a mode the QC isn't in. That leaves one of six switches doing
+nothing — giving it an unrelated job (Tuner via CC 45, or Tap Tempo via
+CC 44) is on the TO-DO list in `docs/CLAUDE.md`.
 
 ### Display
 

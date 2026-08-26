@@ -41,17 +41,27 @@ same logic).
 
 Notes on the above, learned empirically on real hardware with the Super
 Mode config (still true for custom firmware):
-- CC 46 is **value-range-gated**, not edge-triggered — the QC treats it
-  like its sibling CC 62 ("ignore duplicate PC"), where the *value itself*
+- CC 46 is **value-range-gated**, not edge-triggered — the *value itself*
   determines open vs. closed, not just message presence. Sending a fixed
   127 on every press does NOT toggle; you must alternate 127/0.
   Re-proved 2026-07-21 by direct observation: a 127 sent while Gig View
   was already open was a no-op (it did not close), which a toggle
-  interpretation would contradict.
-- CC 47 values 0/1/2 map to QC Modes Preset/Scene/Stomp respectively (per
-  Neural DSP's own manual). We only use 1 and 2 (Scene/Stomp), skipping
-  Preset mode entirely, since Preset-mode footswitch behavior isn't part
-  of this pedal's role.
+  interpretation would contradict. The 4.1 manual gives the exact
+  thresholds: **0-63 closes, 64-127 opens.** Our 127/0 sits safely inside
+  each range. CC 45 (Tuner) is documented with the identical shape.
+- CC 47 selects a **Mode Slot, not a named Mode** — a distinction that
+  matters and that this document previously got wrong. Per the 4.1
+  manual: value 0 = Mode Slot 1 (PRESET *by default*), value 1 = Slot 2
+  (SCENE by default), value 2 = Slot 3 (STOMP by default). The manual is
+  explicit that "when Modes are reordered in the Modes Configuration
+  menu, MIDI CC values do not change to reflect the new cycle
+  arrangement", and that **"if a Mode slot is empty, MIDI messages will
+  not recall any Mode."** So the value→mode mapping holds only for a
+  default configuration; once slots are edited, CC 47 addresses whatever
+  now occupies that slot, or nothing. We send 1 and 2, skipping Preset
+  mode, since Preset-mode footswitch behavior isn't part of this pedal's
+  role — see the switch "C" section below for what that means on a
+  merged-mode configuration.
 - Switches "3" and "C" are the two rightmost physical switches in each row.
   On stock Super Mode, these have a **hardwired long-press page+/page−**
   function baked into the firmware itself, independent of config. This
@@ -334,31 +344,39 @@ needs to keep this LED honest.
 Unchanged so far, but its justification is gone.
 
 **Modes Configuration is a global device setting, not per-preset or
-per-bank** (user-confirmed 2026-08-26). When the rotation holds a single
-Scene+Stomp Hybrid Mode and no Preset mode, CC 47 is a **no-op** —
-bench-confirmed the same day, pressing "C" does nothing on the QC at all.
-Once Scene and Stomp are merged, the hybrid is not reachable as *either*
-CC 47 value 1 or value 2: it stops being addressable by that numbering
-rather than becoming a third target.
+per-bank** (user-confirmed 2026-08-26). With a rotation holding a single
+Scene+Stomp Hybrid Mode and no Preset mode, pressing "C" does nothing
+observable on the QC — bench-confirmed the same day. An earlier draft of
+this document claimed non-hybrid banks kept "C" useful; that was wrong
+and rested on a per-bank misreading of a global setting.
 
-Because the setting is global, so is the consequence: **switch "C" is
-dead everywhere**, not on some banks. It has no per-bank fallback role to
-protect, and it still alternates its own LED magenta/blue on every press
-— the pedal's one knowingly-lying LED, and a wasted switch out of only
-six. An earlier draft of this document claimed non-hybrid banks kept "C"
-useful; that was wrong and rested on the same per-bank misreading.
+The 4.1 manual explains the dead switch better than our own guess did.
+CC 47 addresses **slots**, and *"if a Mode slot is empty, MIDI messages
+will not recall any Mode."* Removing PRESET and merging SCENE+STOMP
+leaves at most one occupied slot, so the values we send (1 and 2) are
+very likely pointing at empty ones.
 
-No CC is known for selecting a mode *rotation* or a Hybrid Mode, and
-device configuration is not something the QC's MIDI surface generally
-exposes — it addresses performance state. Not yet checked against the
-manual's CC appendix, so treat this as unconfirmed rather than settled.
+**Careful with the strength of that claim, though.** "Nothing happens" is
+not proof the CC was rejected: with only one mode in the rotation,
+successfully recalling it is *also* invisible. Without a MIDI monitor the
+two are indistinguishable. An earlier draft asserted the hybrid is
+"reachable as neither value 1 nor value 2" — that overstates the
+evidence. If it matters, the cheap test is CC 47 **value 0** (Slot 1),
+which the hybrid may well have shifted into once PRESET was removed.
 
-**This is what makes "switch layouts from the MINI 6" worth pursuing
-(raised 2026-08-26, unimplemented).** The MINI 6 does not actually need
-the QC to change modes: it already chooses which CCs it sends and what
-roles it applies locally. A layout switch is therefore a MINI 6-side
-feature that needs no QC cooperation at all — see the TO-DO in
-`docs/CLAUDE.md`.
+Either way the switch is useless *for mode selection*, and not because of
+a MIDI limitation: **with one mode in the rotation there is nothing to
+select.** Hybrid-vs-default is a Modes Configuration edit — which modes
+exist and how they are merged — and CC 47 only recalls from slots, it
+never reconfigures them. No CC edits device configuration; that surface
+isn't exposed over MIDI. User's own reading, 2026-08-26, and the manual
+supports it.
+
+So "C" is a wasted switch out of only six, with a lying LED. The useful
+move is to give it an unrelated job rather than a mode job — CC 45
+(Tuner) has exactly the same value-gated shape as the CC 46 logic switch
+"3" already implements, and CC 44 (Tap Tempo) is simpler still. See the
+TO-DO in `docs/CLAUDE.md`.
 
 ### No feedback available for switch "3" (Gig View) or "C" (Mode)
 
