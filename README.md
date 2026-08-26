@@ -26,6 +26,14 @@ Bench-validated on real hardware 2026-07-05 and in live use. Hardened
 boot settle delay, CircuitPython version pin) with the protocol logic
 extracted to `qc_logic.py` and covered by desktop regression tests.
 
+Extended 2026-08-26 for the QC's **Hybrid Modes**, where the footswitch
+columns split between selecting scenes and toggling blocks. Each of the
+MINI 6's four Gig View switches can now be told, per preset, whether it
+is a **scene** switch (radio button — one bright at a time, as before) or
+a **stomp** switch (latching and independent — bright while engaged, dim
+while bypassed, unaffected by scene changes around it). Several LEDs can
+be bright at once. See §5c.
+
 ---
 
 ## 1. Prerequisites
@@ -303,7 +311,7 @@ these two LEDs are optimistic local state, same ceiling stock always had:
 | Switch | States | Boot default | Accuracy |
 |---|---|---|---|
 | 3 | White = Gig View open, dim gray = closed | Closed | Exact at boot (QC always boots closed). Stays correct across preset loads — the QC keeps Gig View open on preset change and the firmware deliberately preserves its state too (bench-confirmed 2026-07-21). Goes stale only if you open Gig View by swiping the QC's screen |
-| C | Magenta = Stomp, blue = Scene | Scene | Best guess (QC remembers last mode); a wrong guess self-corrects within 1–2 presses since CC 47 is absolute, not a toggle. **Inert if your mode rotation is a single Hybrid Mode** — see below |
+| C | Magenta = Stomp, blue = Scene | Scene | Best guess (QC remembers last mode); a wrong guess self-corrects within 1–2 presses since CC 47 is absolute, not a toggle. **Dormant while your mode rotation is a single Hybrid Mode** — the LED still alternates but the QC ignores the CC; works normally again once the rotation holds separate Scene/Stomp modes. See below |
 
 **Switch "C" and Hybrid Modes (bench-confirmed 2026-08-26):** Modes
 Configuration is a **global** QC setting, not per-preset or per-bank. If
@@ -315,11 +323,12 @@ slots, and per the 4.1 manual an empty slot recalls nothing. Switching
 between hybrid and non-hybrid is a Modes Configuration edit, which the
 QC doesn't expose over MIDI at all.
 
-Because the setting is global, so is the effect: **"C" is inert
-everywhere**, while its LED still alternates magenta/blue on each press,
-showing a mode the QC isn't in. That leaves one of six switches doing
-nothing — giving it an unrelated job (Tuner via CC 45, or Tap Tempo via
-CC 44) is on the TO-DO list in `docs/CLAUDE.md`.
+**"C" is dormant, not dead.** Reconfigure the QC back to separate Scene
+and Stomp modes and CC 47 addresses real slots again — the switch works
+exactly as documented above, with no firmware change. It is deliberately
+left alone for that reason. The only cost while a hybrid rotation is
+active is cosmetic: its LED still alternates magenta/blue on each press,
+showing a mode the QC isn't in.
 
 ### Display
 
@@ -335,11 +344,15 @@ LEDs and the QC's own screen.
 
 | Element | Color | Hex |
 |---|---|---|
-| Scene switch, color unknown | White | `0xFFFFFF` |
+| Scene or stomp switch, color unknown | White | `0xFFFFFF` |
 | Gig View open (switch "3") | White | `0xFFFFFF` |
 | Gig View closed (switch "3") | Dim gray | `0x282828` |
-| Stomp mode (switch "C") | Magenta | `0xFF00FF` |
-| Scene mode (switch "C") | Blue | `0x0000FF` |
+| QC in Stomp *mode* (switch "C") | Magenta | `0xFF00FF` |
+| QC in Scene *mode* (switch "C") | Blue | `0x0000FF` |
+
+Note the name collision: switch "C" reports the QC's global **Mode**,
+which is unrelated to a switch's **role** (§5c). A switch with a stomp
+role shows its own learned scene color, never magenta.
 
 ### 7b. Scene color palette (CC 101–104 values)
 
@@ -375,8 +388,8 @@ Any other value is ignored. Global LED brightness is 0.3
 | 40 | 127 | Select scene B2 |
 | 41 | 127 | Select scene C2 |
 | 42 | 127 | Select scene D2 |
-| 46 | 127 / 0 | Gig View open / close |
-| 47 | 2 / 1 | Mode: Stomp / Scene |
+| 46 | 127 / 0 | Gig View open / close (QC gates on range: 0–63 close, 64–127 open) |
+| 47 | 2 / 1 | Mode Slot 3 / Slot 2 (STOMP / SCENE by default). No effect if those slots are empty — e.g. a single merged Hybrid Mode |
 
 ### QC → MINI 6 (incoming)
 
@@ -402,11 +415,17 @@ Any other value is ignored. Global LED brightness is 0.3
 |---|---|
 | Firmware change didn't take effect | USB copy wasn't flushed — always eject `CIRCUITPY` cleanly before power-cycling |
 | LEDs never light from QC actions | QC → MINI 6 MIDI cable missing/dead, or the preset's Preset MIDI Out messages aren't configured (§5) |
-| LEDs stuck on dim white | Colors were never taught: add the color CCs to the preset (§5b/5c) |
+| LEDs stuck on dim white | Colors were never taught: add the color CCs to the preset (§5b/§5d) |
+| Stomp switches act like scenes — pressing one dims the others | The role messages aren't arriving. Check `CC 105–108` exist in On Preset Load, on channel 1 (§5c). Without them every switch defaults to scene role |
+| A stomp LED is bright when the block is bypassed (or vice versa) | The `CC 105–108` value disagrees with what the preset actually saved. Values 1/2 are static claims, not readings — confirm the preset's real bypass state on the QC and fix the value (§5c) |
+| Stomp LED went stale after a scene change | That scene changes the block's bypass state. Add the matching `CC 105–108` message to that scene's own Preset MIDI Out entry (§6) |
+| Roles reset themselves on preset load | Working as designed — `CC 100 v0` clears roles along with colors, so each preset re-teaches its own. Make sure it is the **first** On Preset Load slot (§5d) |
+| Switch "C" does nothing on the QC | Expected if your Modes Configuration is a single Hybrid Mode — there is no second mode to select. Works again once the rotation holds separate Scene/Stomp modes (§6) |
 | LED colors wrong after editing a preset's scene colors on the QC | The static CC values in Preset MIDI Out went stale — update them to match (known tradeoff; the values are manual config) |
 | No logo / blank screen, but switches and MIDI work | Display init is non-fatal by design; attach a serial console to read the printed exception. Check `wallpaper/wp5.bmp` exists |
 | Brief screen noise at power-on | Known cosmetic limitation (pre-code boot window); see the parked TO-DO in `docs/CLAUDE.md` |
 | Switch "3"/"C" LED doesn't match the QC | Expected: no MIDI feedback exists for Gig View/Mode state (§6); it self-corrects on the next press |
+| Deployed a change and nothing happened | `qc_logic.py` must be copied to the device root **alongside** `code.py` — most protocol changes live there, so copying only `code.py` is a silent no-op |
 
 ---
 

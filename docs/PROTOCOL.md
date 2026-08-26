@@ -341,14 +341,24 @@ needs to keep this LED honest.
 
 #### Interaction with switch "C" (CC 47)
 
-Unchanged so far, but its justification is gone.
+**Unchanged, and staying that way** (user decision 2026-08-26).
 
 **Modes Configuration is a global device setting, not per-preset or
 per-bank** (user-confirmed 2026-08-26). With a rotation holding a single
 Scene+Stomp Hybrid Mode and no Preset mode, pressing "C" does nothing
 observable on the QC — bench-confirmed the same day. An earlier draft of
-this document claimed non-hybrid banks kept "C" useful; that was wrong
+this document claimed non-hybrid *banks* kept "C" useful; that was wrong
 and rested on a per-bank misreading of a global setting.
+
+But global does not mean permanent, and this is the part to get right:
+**the configuration is user-editable, so "C" is inert only while a merged
+hybrid is the whole rotation.** Reconfigure back to separate Scene and
+Stomp modes and CC 47 addresses occupied slots again, and "C" works
+exactly as it always has. The user does exactly this and wants that
+behavior kept, so the switch stays as-is — it has a real fallback role,
+just a configuration-level one rather than a per-bank one. Do not
+"reclaim" it on the grounds that it is dead weight; it is dormant, not
+dead.
 
 The 4.1 manual explains the dead switch better than our own guess did.
 CC 47 addresses **slots**, and *"if a Mode slot is empty, MIDI messages
@@ -372,11 +382,13 @@ never reconfigures them. No CC edits device configuration; that surface
 isn't exposed over MIDI. User's own reading, 2026-08-26, and the manual
 supports it.
 
-So "C" is a wasted switch out of only six, with a lying LED. The useful
-move is to give it an unrelated job rather than a mode job — CC 45
-(Tuner) has exactly the same value-gated shape as the CC 46 logic switch
-"3" already implements, and CC 44 (Tap Tempo) is simpler still. See the
-TO-DO in `docs/CLAUDE.md`.
+The residual cost, accepted 2026-08-26: while the hybrid rotation is
+active, "C" alternates its own LED magenta/blue on every press, showing
+a mode the QC isn't in. Purely cosmetic — the switch sends its CC and
+the QC ignores it. Repurposing "C" for something unrelated (CC 45 Tuner,
+CC 44 Tap Tempo) was considered and **declined**: the user already runs
+an outboard tuner live, and needs "C" to keep behaving normally whenever
+the QC is configured out of hybrid mode.
 
 ### No feedback available for switch "3" (Gig View) or "C" (Mode)
 

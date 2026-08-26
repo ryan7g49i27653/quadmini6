@@ -212,9 +212,13 @@ at the top of `code_draft.py` and `docs/PROTOCOL.md` for details.
     rotation containing only a Hybrid Mode (no Preset mode), pressing
     "C" does nothing observable. **Modes Configuration is global**
     (user-confirmed 2026-08-26), not per-preset or per-bank, so switch
-    "C" is dead *everywhere* — it has no fallback role to protect. Its
-    LED still alternates magenta/blue on each press. One of six switches
-    wasted; see TO-DO item 2.
+    "C" is inert *everywhere* while that configuration is loaded — but
+    the configuration is user-editable, so it is **dormant, not dead**:
+    reconfigure back to separate Scene and Stomp modes and CC 47
+    addresses real slots again, with no firmware change. The user does
+    this and wants the behavior kept. Leave "C" alone. Residual cost,
+    accepted: its LED still alternates magenta/blue while the hybrid
+    rotation is active, showing a mode the QC isn't in.
   - **QC manual 4.1.0 settles the mechanism** (`docs/` has the PDF,
     gitignored; its text layer is CID-encoded and does not extract, so
     quote from the page images): CC 47 addresses a **Mode Slot**, not a
@@ -303,33 +307,26 @@ Active:
 
 1. Further featureset ideas from the user (raised 2026-07-05). Split
    Scene/Stomp shipped 2026-08-26 — see the status bullet above.
-2. **Give switch "C" an unrelated job** (raised 2026-08-26,
-   designed-not-built). "C" is inert: Modes Configuration is global,
-   the rotation holds one Hybrid Mode, and there is nothing to select.
-   Its LED still alternates magenta/blue, so it is also the pedal's one
-   knowingly-lying LED. One wasted switch out of six.
+Closed 2026-08-26 — **switch "C" stays exactly as it is.** Two ideas for
+repurposing it were raised and both declined by the user; recorded so
+they are not re-proposed:
 
-   Two candidates, both from the 4.1 manual's CC list, both small:
-   - **Tuner, CC 45** — value-gated exactly like CC 46 (0-63 closes,
-     64-127 opens), so it is a near-copy of the switch "3" logic already
-     in `on_press()`: alternate 127/0, track locally, repaint the LED.
-     A dedicated tuner stomp is genuinely useful on stage.
-   - **Tap Tempo, CC 44** — value 0-127 is press emulation, so it is
-     even simpler: send on press, no state to track at all. The LED
-     would need a different idea (blink is out — the main loop must not
-     block), or just leave it a fixed color.
+- **Give "C" an unrelated job** (Tuner on CC 45, value-gated identically
+  to CC 46 so it would be a near-copy of the switch "3" logic; or Tap
+  Tempo on CC 44, simpler still). **Declined:** the user already runs an
+  outboard tuner live, and — the load-bearing reason — needs "C" to keep
+  working normally whenever the QC is configured out of hybrid mode.
+  "C" is dormant, not dead; it has a real fallback role.
+- **"C" as a MINI 6-side Gig View page selector.** The MINI 6 only
+  addresses Page II (CC 39-42), so flipping it to Page I would double
+  its reach to all 8 QC slots with no QC cooperation needed.
+  **Declined:** the user deliberately runs Page I on the QC and Page II
+  on the MINI 6, and that split is the entire point of owning the
+  MINI 6.
 
-   Both are self-contained: no `qc_logic.py` changes, no protocol
-   additions, no QC-side config. Pick one and it is a handful of lines
-   in `on_press()` plus the boot LED default.
-
-   **Rejected 2026-08-26: "C" as a MINI 6-side Gig View page selector.**
-   The MINI 6 only addresses Page II (CC 39-42), so flipping it to Page
-   I would double its reach to all 8 QC slots, and it needs no QC
-   cooperation — the MINI 6 chooses which CCs it sends. But the user
-   deliberately runs Page I on the QC and Page II on the MINI 6, with
-   the split being the entire point of owning the MINI 6. Do not
-   re-propose this.
+The one accepted residual: while a hybrid rotation is active, "C"
+alternates its LED magenta/blue on each press, showing a mode the QC
+isn't in. Cosmetic only.
 
 Parked — boot-time display noise (revisit later, user decision
 2026-07-05). The white pixelated flash between power-on and the black
