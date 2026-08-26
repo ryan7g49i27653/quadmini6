@@ -72,8 +72,25 @@ Gig View footswitch identities, Channel 1):
   value 0 forgets. Sent as extra On Preset Load messages (or attached to
   footswitch echoes, or from anywhere else -- handled whenever received).
 
+  CC 105/106/107/108 = role + state for switch "1"/"2"/"A"/"B", for the
+  QC's Hybrid Scene/Stomp modes: 0 = scene (default), 1 = stomp bypassed,
+  2 = stomp engaged, 3 = stomp toggle. Sent as On Preset Load messages by
+  hybrid presets. A scene switch is a radio button (one bright at a
+  time); a stomp switch latches independently and survives scene changes.
+  Because the hybrid layout is arrangeable on the QC (scene row above
+  stomp row or the reverse), roles are taught, never hardcoded -- which
+  also means CC 100 values 1-4 are interpreted per column: on a scene
+  column a Page I press dims the scene LEDs, on a stomp column it hit a
+  different block than the one shown here and is ignored.
+
+  Stomp state is inferred from the press echo (the QC sends the same
+  message whether a block was engaged or bypassed), so it is accurate as
+  long as it starts accurate. Bypassing a block from the QC touchscreen
+  desyncs it until the next preset load or re-teach.
+
   Gig View LEDs are three-state (never fully off):
-    bright scene color = active scene    dim scene color = inactive
+    bright color = scene active / stomp engaged
+    dim color    = scene inactive / stomp bypassed
     white (bright or dim) = color not learned since boot / last value 0
   So an opted-in preset shows four dim colored LEDs from the moment it
   loads; a preset that teaches nothing shows dim white, which is honest

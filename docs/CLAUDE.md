@@ -188,6 +188,38 @@ at the top of `code_draft.py` and `docs/PROTOCOL.md` for details.
   version specifics are not confirmable from the device itself (no
   documented on-screen version display was found).
 
+- **Split Scene/Stomp support added 2026-08-26, bench-confirmed the same
+  day, first flash, no code changes needed.** The QC's Hybrid Modes let
+  footswitch columns split between scene-selecting and block-toggling
+  duty; the original single-`lit_switch` radio model could not represent
+  it, so no QC-side reassignment alone could have worked. Each of the
+  four Gig View switches now carries a **role**, taught per preset via
+  **CC 105-108** (0 = scene, 1 = stomp bypassed, 2 = stomp engaged,
+  3 = toggle) — taught rather than hardcoded because the hybrid layout is
+  user-arrangeable on the QC (scene row above stomp row, or swapped).
+  Stomp switches latch independently and survive scene changes; CC 100
+  values 1-4 are now interpreted against the column's role (scene column
+  dims the scenes, stomp column is ignored — it's a different block than
+  the Page II one shown). Entirely inside `qc_logic.py`; `code_draft.py`
+  gained only docstring text. Tests: 14 → 29.
+  - **Bench finding that overturned a design assumption:** touching the
+    QC's *screen* to bypass a block DOES fire the Preset MIDI Out echo.
+    The predicted "touchscreen changes desync the LED" drift source does
+    not exist, so stomp tracking is much closer to ground truth than the
+    press-inference model implies. Only a scene that itself changes a
+    block's bypass state could still desync one; unobserved so far.
+  - **Bench finding on CC 47:** on a rotation containing only a Hybrid
+    Mode (no Preset mode), CC 47 does nothing at all — once Scene and
+    Stomp merge, the hybrid is not reachable as value 1 *or* value 2.
+    **Modes Configuration is global** (user-confirmed 2026-08-26), not
+    per-preset or per-bank, so switch "C" is dead *everywhere*, not on
+    some banks — it has no fallback role to protect. Its LED still
+    alternates magenta/blue on each press. One of six switches wasted;
+    see TO-DO item 2. No CC is known for selecting a mode rotation or a
+    Hybrid Mode (device configuration, which the QC's MIDI surface
+    generally doesn't expose); not checked against the manual's CC
+    appendix.
+
 ## Environment facts (don't re-derive these)
 
 - **Board:** Raspberry Pi Pico, RP2040. CircuitPython 7.3.1
@@ -253,7 +285,35 @@ at the top of `code_draft.py` and `docs/PROTOCOL.md` for details.
 
 Active:
 
-1. Further featureset ideas from the user (raised 2026-07-05).
+1. Further featureset ideas from the user (raised 2026-07-05). Split
+   Scene/Stomp shipped 2026-08-26 — see the status bullet above.
+2. **Repurpose switch "C" as a MINI 6-side layout selector** (raised by
+   the user 2026-08-26, designed-not-built). Modes Configuration is
+   global, so with a single Hybrid Mode in the rotation CC 47 is inert
+   everywhere and "C" is a wasted switch with a lying LED — there is no
+   per-bank fallback role to preserve, which was the only reason to
+   leave it alone.
+
+   Key reframe: the MINI 6 does **not** need a QC mode-select CC for
+   this. It already decides which CCs it sends and which roles it
+   applies, so switching layouts is entirely local and needs no QC
+   cooperation. The obvious target is Gig View **page**: the MINI 6
+   currently only ever addresses Page II (CC 39-42), reaching 4 of the
+   QC's 8 slots. If "C" flipped it to Page I, all 8 become reachable —
+   4 scenes and 4 stomps instead of 2 and 2.
+
+   **Blocking fact to confirm first:** whether CC 35-38 (or whatever the
+   manual's CC appendix lists) select the Page I slots A1-D1, the way
+   CC 39-42 select A2-D2. Everything else follows from that; the design
+   should keep the CC numbers in a table so they are trivially
+   retargetable if the appendix says otherwise.
+
+   Design consequences to work through when building it: role config
+   (CC 105-108) currently covers 4 switches and would need to cover 8
+   slots, or be re-taught on page flip; the CC 100 v1-8 echo currently
+   assumes Page I is never displayed, and that assumption inverts on the
+   flipped page; and "C" needs a sensible LED scheme for page state
+   (it is locally-tracked with no feedback, same ceiling as today).
 
 Parked — boot-time display noise (revisit later, user decision
 2026-07-05). The white pixelated flash between power-on and the black

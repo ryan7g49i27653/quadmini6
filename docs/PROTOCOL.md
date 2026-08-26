@@ -115,6 +115,12 @@ bench).
 | 7 (C2) | Switch "A" bright, others dim |
 | 8 (D2) | Switch "B" bright, others dim |
 
+The table above describes an all-scenes layout, which is the default and
+what every preset gets until told otherwise. On a QC **Hybrid Mode**,
+switches told they are stomps (CC 105-108) latch independently instead —
+see "Hybrid Scene/Stomp layouts" below, which also changes what values
+1-4 mean on a stomp column.
+
 This is **ground truth**, not optimistic/local — confirmed acceptable
 given the user watches the QC's own screen live and doesn't need
 sub-100ms LED feedback on the MINI 6 itself. No "light immediately on
@@ -215,6 +221,144 @@ Any other value is ignored. Behavior notes:
 - CC 101-104 sit right above CC 100, comfortably outside the QC's
   reserved incoming CC list (tops out at 62), same collision-safety
   argument as CC 100.
+
+### Hybrid Scene/Stomp layouts: per-switch roles (CC 105-108, added 2026-08-26)
+
+**Bench-tested on real hardware 2026-08-26 — all checks in
+`docs/TESTING.md` §12 passed, first flash, no code changes needed.**
+
+The QC supports **Hybrid Modes** (Cortex Control → Modes Configuration →
+drag one Mode onto another), which split the four footswitch columns
+between Scene and Stomp duty — e.g. the A/B row selecting scenes while
+the C/D row toggles blocks. Both pages follow the column, so A1/A2/B1/B2
+are scenes and C1/C2/D1/D2 are stomps.
+
+This breaks the radio-button assumption underneath the LED logic above.
+A stomp is **latching and independent**: it stays bright while engaged
+even as scenes change around it, and it can start a preset either
+engaged or bypassed. Under the original scheme only one of the four
+switches could ever be bright, so no QC-side reassignment could have
+produced this — it needed firmware.
+
+**The row arrangement is user-arrangeable** (Scene above Stomp, or
+swapped via the ↕ control on the hybrid tile), so which columns are
+scenes is *not* fixed and cannot be hardcoded. Each MINI 6 switch is
+therefore told its role, per preset:
+
+| CC | Sets role for | (QC slot) |
+|---|---|---|
+| 105 | Switch "1" | A2 |
+| 106 | Switch "2" | B2 |
+| 107 | Switch "A" | C2 |
+| 108 | Switch "B" | D2 |
+
+| Value | Meaning |
+|---|---|
+| 0 | **Scene** role — radio button, the default and the pre-hybrid behavior |
+| 1 | **Stomp** role, currently **bypassed** (dim) |
+| 2 | **Stomp** role, currently **engaged** (bright) |
+| 3 | **Stomp** role, **toggle** current state |
+
+Any other value is ignored. Values 1 and 2 are what let a stomp start a
+preset in either state.
+
+#### What this changes about CC 100 values 1-4
+
+Nothing needs re-assigning in the per-footswitch panel — **leave all
+eight CC 100 echoes exactly as they are.** The firmware now interprets
+values 1-4 against the role of the MINI 6 switch sharing that QC column
+(v1→"1", v2→"2", v3→"A", v4→"B"):
+
+| Column role | A Page I press means | LED result |
+|---|---|---|
+| Scene | A Page I scene went active, so no Page II scene is | Scene LEDs dim; **engaged stomps stay bright** |
+| Stomp | The Page I *block* toggled — a different block from the Page II one this switch displays | Ignored entirely |
+
+"Dim only the scenes, leave active stomps bright" needs no special case:
+stomp brightness is driven by the switch's own latched state and never
+consults the active-scene value, so clearing it dims scenes only.
+
+Keeping all eight assigned is what makes the layout portable — flipping
+Scene-above-Stomp to Stomp-above-Scene is four edited values in On
+Preset Load and nothing else.
+
+#### Example: scenes on top, stomps below
+
+On Preset Load for a hybrid preset (9 of the 12 slots), with "A" starting
+bypassed and "B" starting engaged:
+
+| Slot | Message | Meaning |
+|---|---|---|
+| 1 | CC 100 v0 | Zero out (must come first — it resets colors and roles) |
+| 2-5 | CC 101-104 v1-8 | Scene/stomp colors |
+| 6 | CC 105 v0 | "1" is a scene |
+| 7 | CC 106 v0 | "2" is a scene |
+| 8 | CC 107 v1 | "A" is a stomp, starting bypassed |
+| 9 | CC 108 v2 | "B" is a stomp, starting engaged |
+
+#### Accuracy limits (much narrower than expected — bench 2026-08-26)
+
+The QC sends the **same** Preset MIDI Out message whether a stomp was
+engaged or bypassed — there is no state-conditional messaging — so the
+firmware flips its own bit on each press echo rather than reading state
+back. It is therefore accurate only as long as it *starts* accurate, and
+only as long as every state change produces an echo.
+
+**The main predicted drift source turned out not to exist.** The design
+assumed that engaging or bypassing a block by tapping it on the QC's
+**touchscreen** would fire no footswitch echo, leaving the LED lying
+until the next preset load. Bench-disproved 2026-08-26: touching the QC
+screen sends the codes too, so screen-driven changes keep the MINI 6 in
+sync exactly as footswitch-driven ones do. Stomp tracking is
+substantially closer to ground truth in practice than the inference
+model suggests on paper.
+
+One theoretical drift source remains, unobserved so far:
+
+- **Scenes carry per-block bypass states on the QC**, so selecting a
+  scene can in principle flip a stomp without that stomp's own entry
+  firing. If it shows up, the fix reuses the same "MULTIPLE" message
+  slots the colors already ride in: give that scene's own footswitch
+  entry a CC 105-108 message asserting the states it implies — e.g. A2
+  sends CC 100 v5 + CC 101 v8 + CC 107 v2 + CC 108 v1. Static config
+  with the same staleness caveat as the colors, and opt-in per scene.
+
+Value 3 (toggle) is not needed for normal operation — the CC 100 v5-8
+echo already toggles. It exists for the case where some *other* QC
+footswitch changes the same block the MINI 6 is displaying (e.g. the
+same block assigned to both pages of a column), and that switch's entry
+needs to keep this LED honest.
+
+#### Interaction with switch "C" (CC 47)
+
+Unchanged so far, but its justification is gone.
+
+**Modes Configuration is a global device setting, not per-preset or
+per-bank** (user-confirmed 2026-08-26). When the rotation holds a single
+Scene+Stomp Hybrid Mode and no Preset mode, CC 47 is a **no-op** —
+bench-confirmed the same day, pressing "C" does nothing on the QC at all.
+Once Scene and Stomp are merged, the hybrid is not reachable as *either*
+CC 47 value 1 or value 2: it stops being addressable by that numbering
+rather than becoming a third target.
+
+Because the setting is global, so is the consequence: **switch "C" is
+dead everywhere**, not on some banks. It has no per-bank fallback role to
+protect, and it still alternates its own LED magenta/blue on every press
+— the pedal's one knowingly-lying LED, and a wasted switch out of only
+six. An earlier draft of this document claimed non-hybrid banks kept "C"
+useful; that was wrong and rested on the same per-bank misreading.
+
+No CC is known for selecting a mode *rotation* or a Hybrid Mode, and
+device configuration is not something the QC's MIDI surface generally
+exposes — it addresses performance state. Not yet checked against the
+manual's CC appendix, so treat this as unconfirmed rather than settled.
+
+**This is what makes "switch layouts from the MINI 6" worth pursuing
+(raised 2026-08-26, unimplemented).** The MINI 6 does not actually need
+the QC to change modes: it already chooses which CCs it sends and what
+roles it applies locally. A layout switch is therefore a MINI 6-side
+feature that needs no QC cooperation at all — see the TO-DO in
+`docs/CLAUDE.md`.
 
 ### No feedback available for switch "3" (Gig View) or "C" (Mode)
 

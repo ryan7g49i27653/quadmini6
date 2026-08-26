@@ -180,16 +180,44 @@ that scene's color (values in §7b). Example: A2 entry sends
 | C2 → MINI 6 switch "A" | CC 103 |
 | D2 → MINI 6 switch "B" | CC 104 |
 
-### 5c. On Preset Load messages
+### 5c. Hybrid Scene/Stomp presets — switch roles (optional)
 
-Sent automatically every time the preset loads (up to 12 slots):
+Only needed on presets using a QC **Hybrid Mode**, where some footswitch
+columns select scenes and others toggle blocks. Tell the MINI 6 which of
+its switches is which, and what state each stomp starts in:
 
-- **Required:** `CC 100, value 0` — clears the active-scene state and
-  forgets learned colors, so LEDs never carry a previous preset's state.
-- **Recommended:** the four color messages (CC 101–104) so the LEDs show
-  this preset's colors immediately on load, before any switch is pressed.
+| CC | Sets role for | Values |
+|---|---|---|
+| 105 | Switch "1" (A2) | **0** = scene · **1** = stomp, bypassed · **2** = stomp, engaged |
+| 106 | Switch "2" (B2) | (same) |
+| 107 | Switch "A" (C2) | (same) |
+| 108 | Switch "B" (D2) | (same) |
 
-### Why CC 100–104?
+A **scene** switch is a radio button — one bright at a time. A **stomp**
+switch latches independently: bright while engaged, dim while bypassed,
+and unaffected by scene changes around it.
+
+Roles are taught rather than hardcoded because the hybrid layout is
+arrangeable on the QC (scene row above stomp row, or swapped via the ↕
+control). Flipping the arrangement means changing these four values and
+**nothing else** — §5a stays exactly as it is on every preset, hybrid or
+not.
+
+### 5d. On Preset Load messages
+
+Sent automatically every time the preset loads (up to 12 slots). Order
+matters: `CC 100 v0` must come **first**, since it resets colors and
+roles.
+
+| Slot | Message | Status |
+|---|---|---|
+| 1 | `CC 100, value 0` | **Required** — clears active-scene state, forgets colors, resets all four switches to scene role |
+| 2–5 | `CC 101–104` | **Recommended** — this preset's colors, shown on load before any switch is pressed |
+| 6–9 | `CC 105–108` | **Hybrid presets only** — see §5c |
+
+A full hybrid preset uses 9 of the 12 slots.
+
+### Why CC 100–108?
 
 The QC's own reserved incoming CC list tops out at 62, so CCs 100+ can
 never collide with anything the QC itself reacts to.
@@ -232,12 +260,36 @@ Scene LEDs are **never fully off**:
 - Selecting any Page I scene (CC 100 v1–4): no switch bright, learned
   colors stay dim.
 - Preset load (CC 100 v0): all colors forgotten; the new preset's On
-  Preset Load messages re-teach them instantly (§5c), or cycling the four
+  Preset Load messages re-teach them instantly (§5d), or cycling the four
   switches teaches them one press at a time (§5b).
 - LED changes are driven by the QC's echo, not local button presses —
   expect the round-trip (press → QC navigates → echo → LED), which is
   imperceptible in practice.
 - Dim level is `DIM_DIVISOR` in the firmware (8 = bench-confirmed).
+
+### LEDs — stomp switches on hybrid presets (added 2026-08-26)
+
+On a preset that assigns stomp roles (§5c), those switches drop the
+radio-button behavior entirely:
+
+| LED state | Meaning |
+|---|---|
+| **Bright** color | Block engaged |
+| **Dim** color | Block bypassed |
+
+- **Independent.** Several can be bright at once, alongside a bright
+  scene switch. Selecting a scene never clears them.
+- **Page I presses are filtered by role.** A Page I press on a *scene*
+  column dims the scene LEDs as always; on a *stomp* column it toggled a
+  different block than the one this switch displays, so it's ignored.
+- **State is inferred, not read back.** The QC sends the same message
+  whether a block was engaged or bypassed, so the firmware flips its own
+  bit per echo. It stays accurate because it starts accurate (§5c values
+  1/2) and because every change echoes — including changes made by
+  **touching the QC's screen**, confirmed on hardware 2026-08-26.
+- Only theoretical gap: a scene that itself changes a block's bypass
+  state could desync that stomp. Not observed in practice; if it turns
+  up, add the matching CC 105–108 message to that scene's own entry.
 
 ### LEDs — locally tracked (switches 3/C)
 
@@ -248,7 +300,23 @@ these two LEDs are optimistic local state, same ceiling stock always had:
 | Switch | States | Boot default | Accuracy |
 |---|---|---|---|
 | 3 | White = Gig View open, dim gray = closed | Closed | Exact at boot (QC always boots closed). Stays correct across preset loads — the QC keeps Gig View open on preset change and the firmware deliberately preserves its state too (bench-confirmed 2026-07-21). Goes stale only if you open Gig View by swiping the QC's screen |
-| C | Magenta = Stomp, blue = Scene | Scene | Best guess (QC remembers last mode); a wrong guess self-corrects within 1–2 presses since CC 47 is absolute, not a toggle |
+| C | Magenta = Stomp, blue = Scene | Scene | Best guess (QC remembers last mode); a wrong guess self-corrects within 1–2 presses since CC 47 is absolute, not a toggle. **Inert if your mode rotation is a single Hybrid Mode** — see below |
+
+**Switch "C" and Hybrid Modes (bench-confirmed 2026-08-26):** Modes
+Configuration is a **global** QC setting, not per-preset or per-bank. If
+your rotation contains only a Scene+Stomp Hybrid Mode and no Preset mode,
+CC 47 has nothing to cycle to and pressing "C" does nothing on the QC —
+once the two modes merge, the hybrid is reachable as neither CC 47 value
+1 nor value 2. Because the setting is global, so is the effect: **"C" is
+inert everywhere**, while its LED still alternates magenta/blue on each
+press, showing a mode the QC isn't in.
+
+That leaves one of six switches doing nothing, which is why "let the
+MINI 6 switch its own layout" is on the TO-DO list (`docs/CLAUDE.md`).
+No CC is known for selecting a mode rotation or a Hybrid Mode — that's
+device configuration, which the QC's MIDI surface generally doesn't
+expose — but a layout switch doesn't need one: the MINI 6 already
+decides which CCs it sends and which roles it applies.
 
 ### Display
 
@@ -311,13 +379,17 @@ Any other value is ignored. Global LED brightness is 0.3
 
 | CC | Values | Function |
 |---|---|---|
-| 100 | 0 | Preset loaded: no scene active + forget all learned colors |
-| 100 | 1–4 | Page I scene active (A1–D1): no switch bright |
-| 100 | 5–8 | Page II scene active (A2–D2): switch "1"/"2"/"A"/"B" bright |
-| 101 | 0–8 | Scene color for switch "1" (A2) |
-| 102 | 0–8 | Scene color for switch "2" (B2) |
-| 103 | 0–8 | Scene color for switch "A" (C2) |
-| 104 | 0–8 | Scene color for switch "B" (D2) |
+| 100 | 0 | Preset loaded: no scene active, forget all colors, reset all roles to scene |
+| 100 | 1–4 | Page I press (A1–D1). Scene column → no switch bright; stomp column → ignored |
+| 100 | 5–8 | Page II press (A2–D2) on switch "1"/"2"/"A"/"B". Scene role → that switch bright, others dim; stomp role → that switch toggles, others untouched |
+| 101 | 0–8 | Color for switch "1" (A2) |
+| 102 | 0–8 | Color for switch "2" (B2) |
+| 103 | 0–8 | Color for switch "A" (C2) |
+| 104 | 0–8 | Color for switch "B" (D2) |
+| 105 | 0 / 1 / 2 / 3 | Switch "1" (A2) role: scene / stomp bypassed / stomp engaged / stomp toggle |
+| 106 | 0 / 1 / 2 / 3 | Switch "2" (B2) role — same values |
+| 107 | 0 / 1 / 2 / 3 | Switch "A" (C2) role — same values |
+| 108 | 0 / 1 / 2 / 3 | Switch "B" (D2) role — same values |
 
 ---
 

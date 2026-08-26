@@ -269,3 +269,213 @@ requires copying BOTH `code_draft.py`-as-`code.py` AND `qc_logic.py`):
       the `qc_logic.py` wiring end to end.
 - [x] Desktop: `python3 tests/test_qc_logic.py` — 14/14 passing at the
       time of flashing (2026-07-21).
+
+## 12. Hybrid Scene/Stomp roles (CC 105-108, added 2026-08-26)
+
+**Bench-tested 2026-08-26: everything below passed on the first flash,
+no code changes needed. Section complete.** Two findings worth carrying
+forward, both recorded in `PROTOCOL.md`:
+
+1. **Touching the QC's screen DOES fire the echoes** (§12.7). The
+   design's main predicted drift source does not exist — screen-driven
+   block changes keep the MINI 6 in sync exactly as footswitch-driven
+   ones do. Stomp tracking is far closer to ground truth than the
+   inference model suggested on paper.
+2. **CC 47 is fully inert on a hybrid-only rotation** (§12.8), so switch
+   "C" does nothing except alternate its own LED magenta/blue — the
+   pedal's one knowingly-lying LED. Modes Configuration turns out to be
+   a **global** setting, so this applies everywhere rather than on
+   "hybrid banks": "C" has no per-bank fallback role, and the §12.8
+   checks written on that assumption are moot. Repurposing the switch is
+   now TO-DO item 2 in `docs/CLAUDE.md`.
+
+This section is the pre-flash checklist for the split Scene/Stomp
+feature — see the "Hybrid Scene/Stomp layouts" section of `PROTOCOL.md`
+for the design it verifies.
+
+No MIDI monitor is assumed anywhere below: every check is observable
+from the MINI 6's LEDs and the QC's own screen. That does mean a failure
+can't always be localised to one side, so the regression checks in 12.2
+come first — if pre-hybrid behavior is intact, anything that then
+misbehaves is either the new code or the new QC config, and 12.3
+separates those two.
+
+**Note:** the three unchecked items in section 11's *second flash* block
+and the one in section 8 are still outstanding. They ride along with this
+flash — work them first, since a broken refactor would masquerade as a
+broken hybrid.
+
+### 12.1 Before flashing
+
+- [x] Desktop: `python3 tests/test_qc_logic.py` — expect 29/29. Record
+      the count here at flash time, as section 11 did.
+- [x] Copy **both** `code_draft.py` (as `code.py`) **and** `qc_logic.py`
+      to the device root. `qc_logic.py` is the file that actually
+      changed this round — `code_draft.py` only gained docstring text —
+      so a flash that copies just `code.py` will look like a total
+      no-op and waste a debugging session.
+- [x] Eject CIRCUITPY cleanly before power-cycling (see section 8's
+      flashing lesson — an un-flushed copy has cost a bench session
+      before).
+
+### 12.2 Regression: nothing changed for all-scene presets
+
+Do this on an existing, unmodified preset with no CC 105-108 anywhere.
+Roles default to scene, so every check below is asserting *identical*
+pre-hybrid behavior.
+
+- [x] Boot: all four Gig View switches dim white, "3" dim, "C" blue.
+- [x] Load the preset: all four go dim in their taught colors.
+- [x] Select each Page II scene in turn (from either device): that
+      switch bright, the other three dim. Only ever one bright.
+- [x] Select a Page I scene: no switch bright, all four dim in their
+      learned colors.
+- [x] Load a different preset: LEDs clear/re-teach as before.
+
+If any of these differ from section 10's results, stop — the role split
+has leaked into the default path and nothing further is meaningful.
+
+### 12.3 Teaching a hybrid layout
+
+Set up one hybrid test preset on the QC. Its Modes Configuration needs a
+Scene+Stomp Hybrid Mode, arranged scenes-above-stomps, so that A/B are
+scenes and C/D are stomps on both pages.
+
+On Preset Load messages (channel 1, in this slot order — CC 100 v0 MUST
+be first, it now resets roles as well as colors):
+
+| Slot | Message | Meaning |
+|---|---|---|
+| 1 | CC 100 v0 | Zero out |
+| 2 | CC 101 v1 | "1" yellow |
+| 3 | CC 102 v2 | "2" orange |
+| 4 | CC 103 v8 | "A" green |
+| 5 | CC 104 v6 | "B" blue |
+| 6 | CC 105 v0 | "1" is a scene |
+| 7 | CC 106 v0 | "2" is a scene |
+| 8 | CC 107 v1 | "A" is a stomp, starting **bypassed** |
+| 9 | CC 108 v2 | "B" is a stomp, starting **engaged** |
+
+- [x] **First, on the QC itself:** confirm the preset actually saves with
+      C2's block bypassed and D2's block engaged. Slots 8 and 9 are
+      static claims about the preset, not readings from it — if the
+      preset saves the other way round, the LEDs will be confidently
+      wrong and that is bad config, not a firmware bug. This is the
+      single likeliest source of a false failure in this section.
+- [x] Load the hybrid preset. Expected immediately, with no interaction:
+      "1" dim yellow, "2" dim orange, "A" **dim** green, "B" **bright**
+      blue. A bright LED straight out of a preset load is new — it
+      cannot happen under the all-scenes scheme.
+- [x] **Teaching-failed signal:** if all four come up dim and pressing
+      "A" makes it the *only* bright one (dimming "1"/"2"), the role
+      messages aren't arriving — the firmware is treating the preset as
+      all-scenes. Check slots 6-9 exist and are on channel 1 before
+      suspecting the code.
+
+### 12.4 Stomp independence — the core of the feature
+
+Continue on the hybrid preset.
+
+- [x] Press "A" on the MINI 6. Expected: "A" goes bright green, and
+      **nothing else changes** — "B" stays bright, "1"/"2" stay dim. On
+      the QC, C2's block engages.
+- [x] Press "A" again: back to dim green, still nothing else changes.
+- [x] With "A" engaged, press "1". Expected: "1" bright yellow AND "A"
+      stays bright green AND "B" stays bright blue — three LEDs bright
+      at once. This is the check that would have been impossible before.
+- [x] Press "2". Expected: "1" dims, "2" goes bright, both stomps
+      unchanged. Scene selection must not clear stomps.
+- [x] Toggle C2 from the **QC's own footswitch** (not the MINI 6) and
+      confirm "A" tracks it. Then do the same for D2 → "B".
+
+### 12.5 Page I presses (CC 100 values 1-4)
+
+Still on the hybrid preset. This is the behavior the roles change most.
+
+- [x] With "1" bright and both stomps bright, press **A1** on the QC (a
+      Page I *scene*). Expected: "1" and "2" both dim, **both stomps
+      stay bright**. Under the old code all four went dim — that's the
+      regression this guards.
+- [x] Repeat with **B1**: same result.
+- [x] Press **C1** on the QC (a Page I *stomp* — a different block from
+      C2). Expected: **no LED on the MINI 6 changes at all.** Confirm on
+      the QC screen that C1's block did toggle, so you know the press
+      registered and the MINI 6 correctly ignored it rather than the
+      press being lost.
+- [x] Repeat with **D1**: same, no MINI 6 change.
+
+### 12.6 Reversed layout (stomps on top)
+
+Proves the layout is genuinely portable rather than accidentally matching
+one arrangement. Use the ↕ control on the hybrid tile in Modes
+Configuration to put the stomp row on top, then swap the four role values
+in On Preset Load — **and nothing else**:
+
+| Slot | Was | Now |
+|---|---|---|
+| 6 | CC 105 v0 | CC 105 v1 or v2 |
+| 7 | CC 106 v0 | CC 106 v1 or v2 |
+| 8 | CC 107 v1 | CC 107 v0 |
+| 9 | CC 108 v2 | CC 108 v0 |
+
+- [x] Load it. "1"/"2" now latch independently; "A"/"B" are the radio
+      pair.
+- [x] Press **C1** on the QC: now a Page I *scene*, so "A"/"B" should
+      dim and "1"/"2" should hold their states — the mirror image of
+      12.5.
+- [x] Press **A1**: now a Page I *stomp*, so nothing on the MINI 6
+      changes.
+- [x] Confirm the per-footswitch Preset MIDI Out panel was **not**
+      touched to make this work. If it was, the portability claim in
+      `PROTOCOL.md` is wrong and should be corrected.
+- [x] Restore the scenes-above-stomps arrangement afterwards.
+
+### 12.7 Known limits — confirm they behave as documented, not worse
+
+These are accepted drift cases (see `PROTOCOL.md`), not bugs. The point
+is to see how bad they actually look underfoot before relying on this
+live.
+
+- [x] Bypass C2's block by **tapping it on the QC's touchscreen** rather
+      than by foot. Expected: "A" now lies (no footswitch echo fires).
+      **DISPROVED 2026-08-26 — the expectation above was wrong.** The QC
+      sends the codes on a screen touch too, so "A" tracked it correctly
+      and stayed in sync. This drift source does not exist; the design
+      note assuming it has been corrected in `PROTOCOL.md`.
+- [x] Find or make a scene that changes a stomp's bypass state, and
+      select it. Expected: the stomp LED goes stale. Then add
+      CC 107/108 v1-or-v2 to that scene's own Preset MIDI Out entry
+      (alongside its CC 100 echo — the "MULTIPLE" slots from section
+      10) and confirm the LED now follows the scene correctly.
+- [x] Re-load the hybrid preset mid-session after deliberately desyncing
+      a stomp. Expected: full resync to the taught states.
+
+### 12.8 Interactions with existing behavior
+
+- [x] Press "C". Expected: **nothing happens on the QC** (no Preset mode
+      in the rotation, so CC 47 has nothing to cycle to). The MINI 6's
+      own "C" LED will still alternate magenta/blue — it's local
+      optimistic state with no feedback path. **Confirmed 2026-08-26.**
+- [~] ~~Switch to a **non-hybrid** bank and confirm "C" still works as a
+      real Scene↔Stomp selector.~~ **MOOT — the premise was wrong.**
+      Modes Configuration is global, not per-bank, so there is no
+      non-hybrid bank to switch to while a hybrid rotation is set.
+- [~] ~~On that non-hybrid bank in Stomp mode, confirm the Gig View LEDs
+      behave as they did pre-2026-08-26.~~ **MOOT, same reason.** The
+      "roles are per-preset but mode is a runtime toggle" edge this was
+      written to probe cannot arise: with a hybrid rotation there is no
+      runtime mode toggle at all.
+- [x] Preset load with Gig View open: switch "3" still stays bright and
+      the first press still closes it (the section 11 revert must not
+      have been disturbed).
+- [x] Rapid double-taps on "A" and "B" as stomps: no double-toggles.
+      A missed or doubled press desyncs a latching LED in a way it never
+      could a radio-button one, so this is worth more attention than the
+      30ms debounce needed in section 5.
+
+### 12.9 After the bench
+
+- [x] Update `README.md`, `docs/CLAUDE.md` and `TODO.md` for whatever
+      the bench actually showed — the repo's pattern is one doc commit
+      after confirmation (see `d0a984d`), not before.
+- [x] Mark this section's results inline with dates, as sections 9-11 do.
